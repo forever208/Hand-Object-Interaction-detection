@@ -176,12 +176,15 @@ the [Epic-Kitchens2018](https://epic-kitchens.github.io/2018) (EK), [EGTEA](http
 
 ## Demo
 
-### Image Demo
+### Download the model
+Creat a folder `./models/res101_handobj_100k/pascal_voc`, then download the model.
+```
+mkdir -p ./models/res101_handobj_100k/pascal_voc
+cd models/res101_handobj_100k/pascal_voc
+wget wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim" -O faster_rcnn_1_8_89999.pth && rm -rf /tmp/cookies.txt
+```
 
-**Download models** by using the links in the table above from google drive.
-
-
-**Save models** in the **models/** folder:
+the folder structure looks like this:
 ```
 mkdir models
 
@@ -190,7 +193,6 @@ models
     └── pascal_voc
         └── faster_rcnn_{checksession}_{checkepoch}_{checkpoint}.pth
 ```
-
 
 
 **Simple testing**: 
