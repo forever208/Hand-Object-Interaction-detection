@@ -4,9 +4,6 @@
 
 This repo is the pytorch implementation of our Hand Object Detector based on Faster-RCNN.
 
-More information can be found at our:
-
-* [Project and dataset webpage](http://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/)
 
 
 ## Prerequisites
