@@ -75,7 +75,7 @@ models
 
 Put your images in the **images/** folder and run the command. A new folder **images_det** will be created with the visualization. Check more about argparse parameters in demo.py.
 ```
-CUDA_VISIBLE_DEVICES=0 python demo.py --cuda --checkepoch=xxx --checkpoint=xxx
+python demo.py --cuda --checkepoch=8 --checkpoint=89999
 ```
 
 
