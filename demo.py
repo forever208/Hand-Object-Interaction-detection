@@ -165,7 +165,7 @@ if __name__ == '__main__':
   np.random.seed(cfg.RNG_SEED)
 
   # load model
-  model_dir = args.load_dir + "/" + args.net + "_handobj_100K" + "/" + args.dataset
+  model_dir = args.load_dir + "/" + args.net + "_handobj_100k" + "/" + args.dataset
   if not os.path.exists(model_dir):
     raise Exception('There is no input directory for loading network from ' + model_dir)
   load_name = os.path.join(model_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))

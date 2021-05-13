@@ -6,7 +6,7 @@ cffi
 opencv-python
 msgpack
 matplotlib
-pyyaml
+pyyaml==5.3.1
 tensorboardX
 tqdm
 jinja2
