@@ -116,20 +116,26 @@ Label definitions:
 ### Download dataset manually  
 Prepare and save pascal-voc format data in **data/** folder:
 ```
-mkdir data
+
 ```
 You can download our prepared pascal-voc format data from [pascal_voc_format.zip](https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip) (see more of our downloads on our [project and dataset webpage](http://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/download.html)).
 
-### Download dataset by command
-make sure you are in the `./data` folder right now, then run 
+### Download dataset
+creat a folder `./data`, then download the dataset and unzip it.
 ```
+mkdir data
+cd data
 wget https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip
+unzip pascal_voc_format.zip
+rm -rf pascal_voc_format.zip
 ```
 
 ### Download pre-trained Resnet-101 model
-Download pretrained Resnet-101 model from [faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch/tree/pytorch-1.0) (go to **Pretrained Model** section, download **ResNet101** from their Dropbox link) and save it like:
+Download pretrained Resnet-101 model by running the command
 ```
-data/pretrained_model/resnet101_caffe.pth
+mkdir pretrained_model
+cd pretrained_model
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1n-YUaO0O2aJhWwZ_7DVF-xFJXK5JaZbR' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1n-YUaO0O2aJhWwZ_7DVF-xFJXK5JaZbR" -O faster_rcnn_1_7_10021.pth && rm -rf /tmp/cookies.txt
 ```
 
 So far, the data/ folder should be like this:
@@ -150,7 +156,7 @@ data/
 
 To train a hand object detector model with resnet101 on pascal_voc format data, run:
 ```
-CUDA_VISIBLE_DEVICES=0 python trainval_net.py --model_name handobj_100K --log_name=handobj_100K --dataset pascal_voc --net res101 --bs 1 --nw 4 --lr 1e-3 --lr_decay_step 3 --cuda --epoch=10 --use_tfb 
+python trainval_net.py --model_name handobj_100K --log_name=handobj_100K --dataset pascal_voc --net res101 --bs 1 --nw 4 --lr 1e-3 --lr_decay_step 3 --cuda --epoch=10 --use_tfb 
 ```
 
 
@@ -158,7 +164,7 @@ CUDA_VISIBLE_DEVICES=0 python trainval_net.py --model_name handobj_100K --log_na
 ## Test
 To evaluate the detection performance, run:
 ```
-CUDA_VISIBLE_DEVICES=0 python test_net.py --model_name=handobj_100K --save_name=handobj_100K --cuda --checkepoch=xxx --checkpoint=xxx
+python test_net.py --model_name=handobj_100K --save_name=handobj_100K --cuda --checkepoch=xxx --checkpoint=xxx
 ```
 
 
