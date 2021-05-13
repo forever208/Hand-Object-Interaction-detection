@@ -113,13 +113,6 @@ Label definitions:
 
 ## Train
 
-### Download dataset manually  
-Prepare and save pascal-voc format data in **data/** folder:
-```
-
-```
-You can download our prepared pascal-voc format data from [pascal_voc_format.zip](https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip) (see more of our downloads on our [project and dataset webpage](http://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/download.html)).
-
 ### Download dataset
 creat a folder `./data`, then download the dataset and unzip it.
 ```
