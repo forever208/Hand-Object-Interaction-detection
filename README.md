@@ -231,18 +231,8 @@ Label definitions:
 * P: portable object contact
 * F: stationary object contact (e.g.furniture)
 
-
 ![demo_sample](assets/boardgame_848_sU8S98MT1Mo_00013957.png)
 
-
-### Limitations
-- Occasional false positives with no people.
-- Issues with left/right in egocentric data (Please check egocentric models that work far better).
-- Difficulty parsing the full state with lots of people.
-
-<!-- ## Acknowledgment
-
-xxx -->
 
 
 
