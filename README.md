@@ -52,6 +52,116 @@ pip install scipy=1.1.0
 ``` -->
 
 
+## Run Demo
+
+### Download the model
+Creat a folder `./models/res101_handobj_100k/pascal_voc`, then download the model.
+```
+mkdir -p ./models/res101_handobj_100k/pascal_voc
+cd models/res101_handobj_100k/pascal_voc
+wget wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim" -O faster_rcnn_1_8_89999.pth && rm -rf /tmp/cookies.txt
+```
+
+the folder structure looks like this:
+```
+models
+└── res101_handobj_100K
+    └── pascal_voc
+        └── faster_rcnn_{checksession}_{checkepoch}_{checkpoint}.pth
+```
+
+
+**Simple testing**: 
+
+Put your images in the **images/** folder and run the command. A new folder **images_det** will be created with the visualization. Check more about argparse parameters in demo.py.
+```
+CUDA_VISIBLE_DEVICES=0 python demo.py --cuda --checkepoch=xxx --checkpoint=xxx
+```
+
+
+**Params to save detected results** in demo.py you may need for your task:
+* hand_dets: detected results for hands, [boxes(4), score(1), state(1), offset_vector(3), left/right(1)]
+* obj_dets: detected results for object, [boxes(4), score(1), <em>state(1), offset_vector(3), left/right(1)</em>]
+
+We did **not** train the contact_state, offset_vector and hand_side part for objects. We keep them just to make the data format consistent. So, only use the bbox and confidence score infomation for objects.  
+
+**Matching**:
+
+Check the additional [matching.py](https://github.com/ddshan/Hand_Object_Detector/blob/master/lib/model/utils/matching.py) script to match the detection results, **hand_dets** and **obj_dets**, if needed.  
+
+
+### One Image Demo Output:
+
+Color definitions:
+* yellow: object bbox
+* red: right hand bbox
+* blue: left hand bbox
+
+Label definitions:
+* L: left hand
+* R: right hand
+* N: no contact
+* S: self contact
+* O: other person contact
+* P: portable object contact
+* F: stationary object contact (e.g.furniture)
+
+![demo_sample](assets/boardgame_848_sU8S98MT1Mo_00013957.png)
+
+
+
+
+## Train
+
+### Download dataset manually  
+Prepare and save pascal-voc format data in **data/** folder:
+```
+mkdir data
+```
+You can download our prepared pascal-voc format data from [pascal_voc_format.zip](https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip) (see more of our downloads on our [project and dataset webpage](http://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/download.html)).
+
+### Download dataset by command
+make sure you are in the `./data` folder right now, then run 
+```
+wget https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip
+```
+
+### Download pre-trained Resnet-101 model
+Download pretrained Resnet-101 model from [faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch/tree/pytorch-1.0) (go to **Pretrained Model** section, download **ResNet101** from their Dropbox link) and save it like:
+```
+data/pretrained_model/resnet101_caffe.pth
+```
+
+So far, the data/ folder should be like this:
+```
+data/
+├── pretrained_model
+│   └── resnet101_caffe.pth
+├── VOCdevkit2007_handobj_100K
+│   └── VOC2007
+│       ├── Annotations
+│       │   └── *.xml
+│       ├── ImageSets
+│       │   └── Main
+│       │       └── *.txt
+│       └── JPEGImages
+│           └── *.jpg
+```
+
+To train a hand object detector model with resnet101 on pascal_voc format data, run:
+```
+CUDA_VISIBLE_DEVICES=0 python trainval_net.py --model_name handobj_100K --log_name=handobj_100K --dataset pascal_voc --net res101 --bs 1 --nw 4 --lr 1e-3 --lr_decay_step 3 --cuda --epoch=10 --use_tfb 
+```
+
+
+
+## Test
+To evaluate the detection performance, run:
+```
+CUDA_VISIBLE_DEVICES=0 python test_net.py --model_name=handobj_100K --save_name=handobj_100K --cuda --checkepoch=xxx --checkpoint=xxx
+```
+
+
 ## Benchmarking (AP)
 <!-- Table, test on all -->
 - Tested on the testset of our **100K and ego** dataset:
@@ -172,118 +282,6 @@ The model **handobj_100K+ego** is trained on trainset of **100K** plus additiona
 We provide the frame names of the egocentric data we used here: [trainval.txt](https://github.com/ddshan/hand_object_detector/blob/master/assets/data_ego_framename/trainval.txt), [test.txt](https://github.com/ddshan/hand_object_detector/blob/master/assets/data_ego_framename/test.txt). This split is backwards compatible with
 the [Epic-Kitchens2018](https://epic-kitchens.github.io/2018) (EK), [EGTEA](http://cbs.ic.gatech.edu/fpv/), and [CharadesEgo](https://prior.allenai.org/projects/charades-ego) (CE).
 
-
-
-## Demo
-
-### Download the model
-Creat a folder `./models/res101_handobj_100k/pascal_voc`, then download the model.
-```
-mkdir -p ./models/res101_handobj_100k/pascal_voc
-cd models/res101_handobj_100k/pascal_voc
-wget wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim" -O faster_rcnn_1_8_89999.pth && rm -rf /tmp/cookies.txt
-```
-
-the folder structure looks like this:
-```
-mkdir models
-
-models
-└── res101_handobj_100K
-    └── pascal_voc
-        └── faster_rcnn_{checksession}_{checkepoch}_{checkpoint}.pth
-```
-
-
-**Simple testing**: 
-
-Put your images in the **images/** folder and run the command. A new folder **images_det** will be created with the visualization. Check more about argparse parameters in demo.py.
-```
-CUDA_VISIBLE_DEVICES=0 python demo.py --cuda --checkepoch=xxx --checkpoint=xxx
-```
-
-
-**Params to save detected results** in demo.py you may need for your task:
-* hand_dets: detected results for hands, [boxes(4), score(1), state(1), offset_vector(3), left/right(1)]
-* obj_dets: detected results for object, [boxes(4), score(1), <em>state(1), offset_vector(3), left/right(1)</em>]
-
-We did **not** train the contact_state, offset_vector and hand_side part for objects. We keep them just to make the data format consistent. So, only use the bbox and confidence score infomation for objects.  
-
-**Matching**:
-
-Check the additional [matching.py](https://github.com/ddshan/Hand_Object_Detector/blob/master/lib/model/utils/matching.py) script to match the detection results, **hand_dets** and **obj_dets**, if needed.  
-
-
-### One Image Demo Output:
-
-Color definitions:
-* yellow: object bbox
-* red: right hand bbox
-* blue: left hand bbox
-
-Label definitions:
-* L: left hand
-* R: right hand
-* N: no contact
-* S: self contact
-* O: other person contact
-* P: portable object contact
-* F: stationary object contact (e.g.furniture)
-
-![demo_sample](assets/boardgame_848_sU8S98MT1Mo_00013957.png)
-
-
-
-
-## Train
-
-### Download dataset manually  
-Prepare and save pascal-voc format data in **data/** folder:
-```
-mkdir data
-```
-You can download our prepared pascal-voc format data from [pascal_voc_format.zip](https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip) (see more of our downloads on our [project and dataset webpage](http://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/download.html)).
-
-### Download dataset by command
-make sure you are in the `./data` folder right now, then run 
-```
-wget https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip
-```
-
-### Download pre-trained Resnet-101 model
-Download pretrained Resnet-101 model from [faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch/tree/pytorch-1.0) (go to **Pretrained Model** section, download **ResNet101** from their Dropbox link) and save it like:
-```
-data/pretrained_model/resnet101_caffe.pth
-```
-
-So far, the data/ folder should be like this:
-```
-data/
-├── pretrained_model
-│   └── resnet101_caffe.pth
-├── VOCdevkit2007_handobj_100K
-│   └── VOC2007
-│       ├── Annotations
-│       │   └── *.xml
-│       ├── ImageSets
-│       │   └── Main
-│       │       └── *.txt
-│       └── JPEGImages
-│           └── *.jpg
-```
-
-To train a hand object detector model with resnet101 on pascal_voc format data, run:
-```
-CUDA_VISIBLE_DEVICES=0 python trainval_net.py --model_name handobj_100K --log_name=handobj_100K --dataset pascal_voc --net res101 --bs 1 --nw 4 --lr 1e-3 --lr_decay_step 3 --cuda --epoch=10 --use_tfb 
-```
-
-
-
-## Test
-To evaluate the detection performance, run:
-```
-CUDA_VISIBLE_DEVICES=0 python test_net.py --model_name=handobj_100K --save_name=handobj_100K --cuda --checkepoch=xxx --checkpoint=xxx
-```
 
 
 
