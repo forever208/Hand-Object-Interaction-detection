@@ -24,7 +24,7 @@ conda install pytorch=1.0.1 torchvision cudatoolkit=10.0 -c pytorch
 
 Clone the code
 ```
-git clone https://github.com/ddshan/hand_object_detector && cd hand_object_detector
+git clone https://github.com/forever208/Hand-Object-Interaction-detection.git
 ```
 
 Install all the python dependencies using pip:
