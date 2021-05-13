@@ -118,16 +118,22 @@ creat a folder `./data`, then download the dataset and unzip it.
 ```
 mkdir data
 cd data
+
 wget https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip
 unzip pascal_voc_format.zip
 rm -rf pascal_voc_format.zip
+
+cd ..
+mv data/pascal_voc_format/VOCdevkit2007_handobj_100K/ data/
 ```
 
 ### Download pre-trained Resnet-101 model
 Download pretrained Resnet-101 model by running the command
 ```
+cd data
 mkdir pretrained_model
 cd pretrained_model
+
 wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1n-YUaO0O2aJhWwZ_7DVF-xFJXK5JaZbR' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1n-YUaO0O2aJhWwZ_7DVF-xFJXK5JaZbR" -O faster_rcnn_1_7_10021.pth && rm -rf /tmp/cookies.txt
 ```
 
