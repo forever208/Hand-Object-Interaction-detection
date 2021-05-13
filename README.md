@@ -1,10 +1,3 @@
-# Hand Object Detector 
-This is the code for our paper *Understanding Human Hands in Contact at Internet Scale* (CVPR 2020, **Oral**).
-
-Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey
-
-![method](assets/method.png)
-
 
 
 ## Introduction
@@ -30,15 +23,12 @@ conda install pytorch=1.0.1 torchvision cudatoolkit=10.0 -c pytorch
 ```
 
 
-## Preparation
+## Installation & Compile
 
-First of all, clone the code
+Clone the code
 ```
 git clone https://github.com/ddshan/hand_object_detector && cd hand_object_detector
 ```
-
-
-## Environment & Compilation
 
 Install all the python dependencies using pip:
 ```
@@ -64,11 +54,8 @@ If you meet some error about spicy, make sure you downgrade to scipy=1.1.0:
 pip install scipy=1.1.0
 ``` -->
 
-PS:
 
-Since the repo is modified based on [faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch/tree/pytorch-1.0) (use branch pytorch-1.0), if you have futher questions about the environments, the issues in that repo may help.
-
-## Performance (AP)
+## Benchmarking (AP)
 <!-- Table, test on all -->
 - Tested on the testset of our **100K and ego** dataset:
 <table><tbody>
@@ -190,57 +177,6 @@ the [Epic-Kitchens2018](https://epic-kitchens.github.io/2018) (EK), [EGTEA](http
 
 
 
-## Train
-
-### Download dataset manually  
-Prepare and save pascal-voc format data in **data/** folder:
-```
-mkdir data
-```
-You can download our prepared pascal-voc format data from [pascal_voc_format.zip](https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip) (see more of our downloads on our [project and dataset webpage](http://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/download.html)).
-
-### Download dataset by command
-make sure you are in the `./data` folder right now, then run 
-```
-wget https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip
-```
-
-### Download pre-trained Resnet-101 model
-Download pretrained Resnet-101 model from [faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch/tree/pytorch-1.0) (go to **Pretrained Model** section, download **ResNet101** from their Dropbox link) and save it like:
-```
-data/pretrained_model/resnet101_caffe.pth
-```
-
-So far, the data/ folder should be like this:
-```
-data/
-├── pretrained_model
-│   └── resnet101_caffe.pth
-├── VOCdevkit2007_handobj_100K
-│   └── VOC2007
-│       ├── Annotations
-│       │   └── *.xml
-│       ├── ImageSets
-│       │   └── Main
-│       │       └── *.txt
-│       └── JPEGImages
-│           └── *.jpg
-```
-
-To train a hand object detector model with resnet101 on pascal_voc format data, run:
-```
-CUDA_VISIBLE_DEVICES=0 python trainval_net.py --model_name handobj_100K --log_name=handobj_100K --dataset pascal_voc --net res101 --bs 1 --nw 4 --lr 1e-3 --lr_decay_step 3 --cuda --epoch=10 --use_tfb 
-```
-
-
-
-## Test
-To evaluate the detection performance, run:
-```
-CUDA_VISIBLE_DEVICES=0 python test_net.py --model_name=handobj_100K --save_name=handobj_100K --cuda --checkepoch=xxx --checkpoint=xxx
-```
-
-
 ## Demo
 
 ### Image Demo
@@ -307,6 +243,60 @@ Label definitions:
 <!-- ## Acknowledgment
 
 xxx -->
+
+
+
+## Train
+
+### Download dataset manually  
+Prepare and save pascal-voc format data in **data/** folder:
+```
+mkdir data
+```
+You can download our prepared pascal-voc format data from [pascal_voc_format.zip](https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip) (see more of our downloads on our [project and dataset webpage](http://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/download.html)).
+
+### Download dataset by command
+make sure you are in the `./data` folder right now, then run 
+```
+wget https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip
+```
+
+### Download pre-trained Resnet-101 model
+Download pretrained Resnet-101 model from [faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch/tree/pytorch-1.0) (go to **Pretrained Model** section, download **ResNet101** from their Dropbox link) and save it like:
+```
+data/pretrained_model/resnet101_caffe.pth
+```
+
+So far, the data/ folder should be like this:
+```
+data/
+├── pretrained_model
+│   └── resnet101_caffe.pth
+├── VOCdevkit2007_handobj_100K
+│   └── VOC2007
+│       ├── Annotations
+│       │   └── *.xml
+│       ├── ImageSets
+│       │   └── Main
+│       │       └── *.txt
+│       └── JPEGImages
+│           └── *.jpg
+```
+
+To train a hand object detector model with resnet101 on pascal_voc format data, run:
+```
+CUDA_VISIBLE_DEVICES=0 python trainval_net.py --model_name handobj_100K --log_name=handobj_100K --dataset pascal_voc --net res101 --bs 1 --nw 4 --lr 1e-3 --lr_decay_step 3 --cuda --epoch=10 --use_tfb 
+```
+
+
+
+## Test
+To evaluate the detection performance, run:
+```
+CUDA_VISIBLE_DEVICES=0 python test_net.py --model_name=handobj_100K --save_name=handobj_100K --cuda --checkepoch=xxx --checkpoint=xxx
+```
+
+
 
 ## Citation
 
