@@ -192,13 +192,18 @@ the [Epic-Kitchens2018](https://epic-kitchens.github.io/2018) (EK), [EGTEA](http
 
 ## Train
 
-### Data preparation  
+### Download dataset manually  
 Prepare and save pascal-voc format data in **data/** folder:
 ```
 mkdir data
 ```
 You can download our prepared pascal-voc format data from [pascal_voc_format.zip](https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip) (see more of our downloads on our [project and dataset webpage](http://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/download.html)).
 
+### Download dataset by command
+make sure you are in the `./data` folder right now, then run 
+```
+wget https://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/downloads/pascal_voc_format.zip
+```
 
 ### Download pre-trained Resnet-101 model
 Download pretrained Resnet-101 model from [faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch/tree/pytorch-1.0) (go to **Pretrained Model** section, download **ResNet101** from their Dropbox link) and save it like:
