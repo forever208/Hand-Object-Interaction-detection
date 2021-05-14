@@ -4,7 +4,7 @@
 
 This repo is based on Faster-RCNN.
 
-Running the repo in Colab is recommended, copy the file [HOI detection.ipynb](https://colab.research.google.com/drive/1yEKHP4Fjx-aY_u2uL_w1vdma9nlT7qwJ?usp=sharing), then run it on Colab. (remember to change the runtime type to GPU in Colab)
+Running the repo in Colab is recommended, copy the file [HOI detection.ipynb](https://colab.research.google.com/drive/1AEAgVhDKNsmUmmDRG9dP9y4VToC4pVn1?usp=sharing), then run it on Colab. (remember to change the runtime type to GPU in Colab)
 
 
 
