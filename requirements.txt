@@ -12,5 +12,3 @@ tqdm
 jinja2
 pascal_voc_writer
 scikit-image
-torch==1.6.0
-torchvision==0.7.0
