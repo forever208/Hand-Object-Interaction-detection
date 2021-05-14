@@ -134,7 +134,7 @@ cd data
 mkdir pretrained_model
 cd pretrained_model
 
-wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1n-YUaO0O2aJhWwZ_7DVF-xFJXK5JaZbR' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1n-YUaO0O2aJhWwZ_7DVF-xFJXK5JaZbR" -O faster_rcnn_1_7_10021.pth && rm -rf /tmp/cookies.txt
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1Pyv546ss5q4idvcXE_Z_GFn_qOhDz10H' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1Pyv546ss5q4idvcXE_Z_GFn_qOhDz10H" -O resnet101_caffe.pth && rm -rf /tmp/cookies.txt
 ```
 
 So far, the data/ folder should be like this:
