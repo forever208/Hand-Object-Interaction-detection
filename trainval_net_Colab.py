@@ -8,7 +8,6 @@ import os
 import numpy as np
 import argparse
 import pprint
-import pdb
 import time
 
 import torch
@@ -102,7 +101,7 @@ def parse_args():
                         help='checkpoint to load model',
                         default=0, type=int)
 
-    # log and diaplay
+    # log and display
     parser.add_argument('--use_tfb', dest='use_tfboard',
                         help='whether use tensorboard',
                         action='store_true')
@@ -142,6 +141,7 @@ class sampler(Sampler):
 
 
 if __name__ == '__main__':
+    # arguments
     args = parse_args()
     print('Called with args:')
     print(args)
@@ -153,18 +153,17 @@ if __name__ == '__main__':
     else:
         raise Exception("we currently only support pascal_voc dataset")
 
-    # whether use large image scale
+    # configuration
     args.cfg_file = 'cfgs/{}_ls.yml'.format(args.net) if args.large_scale else 'cfgs/{}.yml'.format(args.net)
     if args.cfg_file is not None:
         cfg_from_file(args.cfg_file)
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
-
     print('Using config:')
     pprint.pprint(cfg)
     np.random.seed(cfg.RNG_SEED)
 
-    # automatically choose use GPU or not
+    # automatically choose GPU or not
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     cfg.USE_GPU_NMS = True if torch.cuda.is_available() else False
 
@@ -186,24 +185,14 @@ if __name__ == '__main__':
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                                              sampler=sampler_batch, num_workers=args.num_workers)
 
-    # initialize the tensor holder here.
+    # initialize the tensor holder.
     im_data = torch.FloatTensor(1).to(device)
     im_info = torch.FloatTensor(1).to(device)
     num_boxes = torch.LongTensor(1).to(device)
     gt_boxes = torch.FloatTensor(1).to(device)
-    box_info = torch.FloatTensor(1).to(device)
+    box_info = torch.FloatTensor(1).to(device)    # ground truth link info between hand-object
 
-    # make variable
-    im_data = Variable(im_data)
-    im_info = Variable(im_info)
-    num_boxes = Variable(num_boxes)
-    gt_boxes = Variable(gt_boxes)
-    box_info = Variable(box_info)    # ground truth link info between hand-object
-
-    if args.cuda:
-        cfg.CUDA = True
-
-    # initialize the network here.
+    # initialize the network.
     if args.net == 'res101':
         fasterRCNN = resnet(imdb.classes, 101, pretrained=True, class_agnostic=args.class_agnostic)
     elif args.net == 'res50':
@@ -231,7 +220,7 @@ if __name__ == '__main__':
     elif args.optimizer == "sgd":
         optimizer = torch.optim.SGD(params, momentum=cfg.TRAIN.MOMENTUM)
 
-    # load the haft-trained model
+    # load the half-trained model
     if args.resume:
         load_name = os.path.join(output_dir,
                                  'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
@@ -261,7 +250,7 @@ if __name__ == '__main__':
     iters_per_epoch = int(train_size / args.batch_size)
     fasterRCNN.to(device)
     for epoch in range(args.start_epoch, args.max_epochs + 1):
-        # setting to train mode
+        # set as train mode
         fasterRCNN.train()
         loss_temp = 0
         start = time.time()
