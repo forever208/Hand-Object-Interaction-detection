@@ -84,7 +84,7 @@ def parse_args():
                         action='store_true')
 
     parser.add_argument('--model_name',
-                        help='directory to save models', default='handobj_100k',
+                        help='directory to save models', default='handobj_100K',
                         required=False, type=str)
     parser.add_argument('--save_name',
                         help='folder to save eval results',
