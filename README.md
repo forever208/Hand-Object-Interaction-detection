@@ -11,15 +11,15 @@ Running the repo in Colab is recommended, copy the file [HOI detection.ipynb](ht
 
 ## Prerequisites (Colab user can skip this step) 
 
-* Python 3.6
-* Pytorch 1.0
+* Python 3.7
+* Pytorch 1.6
 * CUDA 10.0
 
 Create a new conda called handobj, install pytorch-1.0.1 and cuda-10.0:
 ```
-conda create --name handobj python=3.6
+conda create --name handobj python=3.7
 conda activate handobj
-conda install pytorch=1.0.1 torchvision cudatoolkit=10.0 -c pytorch
+conda install pytorch=1.6.0 torchvision cudatoolkit=10.0 -c pytorch
 ```
 
 
