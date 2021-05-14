@@ -9,7 +9,7 @@ Running the repo in Colab is recommended, copy the file [HOI detection.ipynb](ht
 
 
 
-## Prerequisites
+## Prerequisites (Colab user can skip this step) 
 
 * Python 3.6
 * Pytorch 1.0
