@@ -71,11 +71,11 @@ models
         └── faster_rcnn_{checksession}_{checkepoch}_{checkpoint}.pth
 ```
 
-### run demo 
+### run demo
 
 Put your images in the `images/` folder and run the command. 
 ```
-python demo.py --cuda --checkepoch=8 --checkpoint=89999
+python demo.py --checkepoch=8 --checkpoint=89999
 ```
 
 A new folder `images_det/` will be created with the detected results
