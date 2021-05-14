@@ -19,7 +19,7 @@ Create a new conda called handobj, install pytorch-1.0.1 and cuda-10.0:
 ```
 conda create --name handobj python=3.7
 conda activate handobj
-conda install pytorch=1.6.0 torchvision cudatoolkit=10.0 -c pytorch
+conda install pytorch==1.6.0 torchvision==0.7.0 cpuonly -c pytorch
 ```
 
 
@@ -42,18 +42,15 @@ python setup.py build develop
 cd ..
 ```
 
-You will meet some errors about coco dataset: (not the best but the easiest solution)
+Install coco_python_API
 ```
+mkdir data
 cd data
 git clone https://github.com/pdollar/coco.git 
 cd coco/PythonAPI
 make
 ```
 
-If you meet some error about spicy, make sure you downgrade to scipy=1.1.0:
-```
-pip install scipy=1.1.0
-```
 
 
 ## Run Demo
