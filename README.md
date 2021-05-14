@@ -2,11 +2,14 @@
 
 ## Introduction
 
-This repo is the pytorch implementation of our Hand Object Detector based on Faster-RCNN.
+This repo is based on Faster-RCNN.
+
+Running the repo in Colab is recommended, copy the file [HOI detection.ipynb](https://colab.research.google.com/drive/1yEKHP4Fjx-aY_u2uL_w1vdma9nlT7qwJ?usp=sharing), then run it on Colab. (remember to change the runtime type to GPU in Colab)
 
 
 
-## Prerequisites
+
+## Prerequisites (Colab user can skip this step) 
 
 * Python 3.6
 * Pytorch 1.0
@@ -163,7 +166,7 @@ python trainval_net.py --model_name handobj_100K --log_name=handobj_100K --datas
 ## Test
 To evaluate the detection performance, run:
 ```
-python test_net.py --model_name=handobj_100K --save_name=handobj_100K --cuda --checkepoch=xxx --checkpoint=xxx
+python test_net_Colab.py --model_name=handobj_100k --save_name=handobj_100k --cuda --checkepoch=8 --checkpoint=89999
 ```
 
 
