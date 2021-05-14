@@ -81,13 +81,8 @@ class imdb(object):
 
     @property
     def cache_path(self):
-        # Michelle's save path >>>>>>>>>>>>>>>>
-        # cache_path = osp.abspath(osp.join(cfg.DATA_DIR, 'cache_try'))
-        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        # Dandan's save path >>>>>>>>>>>>>>>>
+        # './data/cache_handobj_100K'
         cache_path = osp.abspath(osp.join(cfg.DATA_DIR, 'cache_handobj_100K'))
-        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         if not os.path.exists(cache_path):
             os.makedirs(cache_path)
         return cache_path

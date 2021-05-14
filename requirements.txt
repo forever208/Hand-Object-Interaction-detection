@@ -1,4 +1,4 @@
-scipy
+scipy==1.2.1
 pillow>=7.1.0
 easydict
 cython
@@ -11,3 +11,6 @@ tensorboardX
 tqdm
 jinja2
 pascal_voc_writer
+scikit-image
+torch==1.6.0
+torchvision==0.7.0

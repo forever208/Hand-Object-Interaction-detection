@@ -33,25 +33,22 @@ class pascal_voc(imdb):
 
     def __init__(self, image_set, year, devkit_path=None):
         """
-
         :param image_set: string, 'train' or 'val' or 'trainval' or 'test'
         :param year: string, '2007'
         :param devkit_path:
         """
-        imdb.__init__(self, 'voc_' + year + '_' + image_set)   # equal to super().__init__(para1，para2, ...)
+        imdb.__init__(self, 'voc_'+year+'_'+image_set)   # equal to super().__init__(para1，para2, ...)
         self._year = year
         self._image_set = image_set
-        self._devkit_path = self._get_default_path() if devkit_path is None \
-                                                     else devkit_path
-        self._data_path = os.path.join(self._devkit_path, 'VOC'+self._year)
-        self._classes = ('__background__',  # always index 0
-                         'targetobject',
-                         'hand')
+        self._devkit_path = self._get_default_path() if devkit_path is None else devkit_path    # 'data/VOCdevkit2007_handobj_100K'
+        self._data_path = os.path.join(self._devkit_path, 'VOC'+self._year)    # 'data/VOCdevkit2007_handobj_100K/VOC2007'
+
+        self._classes = ('__background__', 'targetobject', 'hand')    # __background__ always set as 0
+        # {'__background__':0, 'targetobject':1, 'hand':2}
         self._class_to_ind = dict(zip(self.classes, range(self.num_classes)))
         self._image_ext = '.jpg'
         self._image_index = self._load_image_set_index()
-        # Default to roidb handler
-        # self._roidb_handler = self.selective_search_roidb
+        # self._roidb_handler = self.selective_search_roidb    # Default to roidb handler
         self._roidb_handler = self.gt_roidb
         self._salt = str(uuid.uuid4())
         self._comp_id = 'comp4'
@@ -67,17 +64,20 @@ class pascal_voc(imdb):
         assert os.path.exists(self._devkit_path), 'VOCdevkit path does not exist: {}'.format(self._devkit_path)
         assert os.path.exists(self._data_path), 'Path does not exist: {}'.format(self._data_path)
 
+
     def image_path_at(self, i):
         """
         Return the absolute path to image i in the image sequence.
         """
         return self.image_path_from_index(self._image_index[i])
 
+
     def image_id_at(self, i):
         """
         Return the absolute path to image i in the image sequence.
         """
         return i
+
 
     def image_path_from_index(self, index):
         """
@@ -89,50 +89,53 @@ class pascal_voc(imdb):
             'Path does not exist: {}'.format(image_path)
         return image_path
 
+
     def _load_image_set_index(self):
         """
-        Load the indexes listed in this dataset's image set file.
+        Load the index listed in this dataset's image file.
         """
-        # Example path to image set file:
-        # self._devkit_path + /VOCdevkit2007/VOC2007/ImageSets/Main/val.txt
-        image_set_file = os.path.join(self._data_path, 'ImageSets', 'Main',
-                                      self._image_set + '.txt')
-        assert os.path.exists(image_set_file), \
-            'Path does not exist: {}'.format(image_set_file)
+        # 'data/VOCdevkit2007_handobj_100K/VOC2007/ImageSets/Main/val.txt
+        image_set_file = os.path.join(self._data_path, 'ImageSets', 'Main', self._image_set+'.txt')
+        assert os.path.exists(image_set_file), 'Path does not exist: {}'.format(image_set_file)
+
         with open(image_set_file) as f:
             image_index = [x.strip() for x in f.readlines()]
         return image_index
 
+
     def _get_default_path(self):
         """
-        Return the default path where PASCAL_VOC dataset is expected to be installed.
+        Return the default path of PASCAL_VOC dataset, 'data/VOCdevkit2007_handobj_100K'
         """
         default_path = os.path.join(cfg.DATA_DIR, 'VOCdevkit' + self._year + '_handobj_100K')
-        print()
         print(f'--------> dataset path = {default_path}')
-        print()
         return default_path
+
 
     def gt_roidb(self):
         """
         Return the database of ground-truth regions of interest.
-
-        This function loads/saves from/to a cache file to speed up future calls.
+        This function saves a dataset cache file to speed up future calls.
         """
-        cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
+
+        # './data/cache_handobj_100K/VOC_2007_trainval_gt_roidb.pkl'
+        cache_file = os.path.join(self.cache_path, self.name+'_gt_roidb.pkl')
+
+        # load sequenced data
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 roidb = pickle.load(fid)
             print('{} gt roidb loaded from {}'.format(self.name, cache_file))
             return roidb
 
-        gt_roidb = [self._load_pascal_annotation(index)
-                    for index in self.image_index]
+        # save dataset into sequence
+        gt_roidb = [self._load_pascal_annotation(index) for index in self.image_index]
         with open(cache_file, 'wb') as fid:
             pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
         print('wrote gt roidb to {}'.format(cache_file))
 
         return gt_roidb
+
 
     def selective_search_roidb(self):
         """
@@ -141,8 +144,7 @@ class pascal_voc(imdb):
 
         This function loads/saves from/to a cache file to speed up future calls.
         """
-        cache_file = os.path.join(self.cache_path,
-                                  self.name + '_selective_search_roidb.pkl')
+        cache_file = os.path.join(self.cache_path, self.name+'_selective_search_roidb.pkl')
 
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
@@ -156,11 +158,13 @@ class pascal_voc(imdb):
             roidb = imdb.merge_roidbs(gt_roidb, ss_roidb)
         else:
             roidb = self._load_selective_search_roidb(None)
+
         with open(cache_file, 'wb') as fid:
             pickle.dump(roidb, fid, pickle.HIGHEST_PROTOCOL)
         print('wrote ss roidb to {}'.format(cache_file))
 
         return roidb
+
 
     def rpn_roidb(self):
         if int(self._year) == 2007 or self._image_set != 'test':
@@ -172,6 +176,7 @@ class pascal_voc(imdb):
 
         return roidb
 
+
     def _load_rpn_roidb(self, gt_roidb):
         filename = self.config['rpn_file']
         print('loading {}'.format(filename))
@@ -180,6 +185,7 @@ class pascal_voc(imdb):
         with open(filename, 'rb') as f:
             box_list = pickle.load(f)
         return self.create_roidb_from_box_list(box_list, gt_roidb)
+
 
     def _load_selective_search_roidb(self, gt_roidb):
         filename = os.path.abspath(os.path.join(cfg.DATA_DIR,
@@ -207,6 +213,8 @@ class pascal_voc(imdb):
         """
         Load image and bounding boxes info from XML file in the PASCAL VOC
         format.
+        :param index:
+        :return:
         """
         filename = os.path.join(self._data_path, 'Annotations', index + '.xml')
         tree = ET.parse(filename)
