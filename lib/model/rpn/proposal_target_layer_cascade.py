@@ -17,6 +17,7 @@ from ..utils.config import cfg
 from .bbox_transform import bbox_overlaps_batch, bbox_transform_batch
 import pdb
 
+
 class _ProposalTargetLayer(nn.Module):
     """
     Assign object detection proposals to ground-truth targets. Produces proposal
@@ -37,7 +38,7 @@ class _ProposalTargetLayer(nn.Module):
         self.BBOX_INSIDE_WEIGHTS = self.BBOX_INSIDE_WEIGHTS.type_as(gt_boxes)
 
         gt_boxes_append = gt_boxes.new(gt_boxes.size()).zero_()
-        gt_boxes_append[:,:,1:5] = gt_boxes[:,:,:4]
+        gt_boxes_append[:, :, 1:5] = gt_boxes[:, :, :4]
 
         # Include ground-truth boxes in the set of candidate rois
         all_rois = torch.cat([all_rois, gt_boxes_append], 1)
@@ -55,13 +56,16 @@ class _ProposalTargetLayer(nn.Module):
 
         return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, box_info
 
+
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
         pass
 
+
     def reshape(self, bottom, top):
         """Reshaping happens during the call to forward."""
         pass
+
 
     def _get_bbox_regression_labels_pytorch(self, bbox_target_data, labels_batch, num_classes):
         """Bounding-box regression targets (bbox_target_data) are stored in a
@@ -92,7 +96,6 @@ class _ProposalTargetLayer(nn.Module):
 
         return bbox_targets, bbox_inside_weights
 
-
     def _compute_targets_pytorch(self, ex_rois, gt_rois):
         """Compute bounding-box regression targets for an image."""
 
@@ -108,7 +111,7 @@ class _ProposalTargetLayer(nn.Module):
         if cfg.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED:
             # Optionally normalize targets by a precomputed mean and stdev
             targets = ((targets - self.BBOX_NORMALIZE_MEANS.expand_as(targets))
-                        / self.BBOX_NORMALIZE_STDS.expand_as(targets))
+                       / self.BBOX_NORMALIZE_STDS.expand_as(targets))
 
         return targets
 
@@ -127,22 +130,22 @@ class _ProposalTargetLayer(nn.Module):
         num_proposal = overlaps.size(1)
         num_boxes_per_img = overlaps.size(2)
 
-        offset = torch.arange(0, batch_size)*gt_boxes.size(1)
+        offset = torch.arange(0, batch_size) * gt_boxes.size(1)
         offset = offset.view(-1, 1).type_as(gt_assignment) + gt_assignment
         # changed indexing way for pytorch 1.0
-        labels = gt_boxes[:,:,4].contiguous().view(-1)[(offset.view(-1),)].view(batch_size, -1)
+        labels = gt_boxes[:, :, 4].contiguous().view(-1)[(offset.view(-1),)].view(batch_size, -1)
         list_box = []
         for i in range(batch_size):
-          list_box.append(box_info[i][(offset[i,:].view(-1),)])
+            """error when batch > 1, IndexError: index 20 is out of bounds for dimension 0 with size 20"""
+            list_box.append(box_info[i][(offset[i, :].view(-1),)])
         boxes_info = torch.stack(list_box)
         labels_batch = labels.new(batch_size, rois_per_image).zero_()
         info_batch = boxes_info.new(batch_size, rois_per_image, 5).zero_()
-        rois_batch  = all_rois.new(batch_size, rois_per_image, 5).zero_()
+        rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
         gt_rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
         # Guard against the case when an image has fewer than max_fg_rois_per_image
         # foreground RoIs
         for i in range(batch_size):
-
             fg_inds = torch.nonzero(max_overlaps[i] >= cfg.TRAIN.FG_THRESH).view(-1)
             fg_num_rois = fg_inds.numel()
 
@@ -158,7 +161,7 @@ class _ProposalTargetLayer(nn.Module):
                 # torch.randperm seems has a bug on multi-gpu setting that cause the segfault.
                 # See https://github.com/pytorch/pytorch/issues/1868 for more details.
                 # use numpy instead.
-                #rand_num = torch.randperm(fg_num_rois).long().cuda()
+                # rand_num = torch.randperm(fg_num_rois).long().cuda()
                 rand_num = torch.from_numpy(np.random.permutation(fg_num_rois)).type_as(gt_boxes).long()
                 fg_inds = fg_inds[rand_num[:fg_rois_per_this_image]]
 
@@ -167,14 +170,14 @@ class _ProposalTargetLayer(nn.Module):
 
                 # Seems torch.rand has a bug, it will generate very large number and make an error.
                 # We use numpy rand instead.
-                #rand_num = (torch.rand(bg_rois_per_this_image) * bg_num_rois).long().cuda()
+                # rand_num = (torch.rand(bg_rois_per_this_image) * bg_num_rois).long().cuda()
                 rand_num = np.floor(np.random.rand(bg_rois_per_this_image) * bg_num_rois)
                 rand_num = torch.from_numpy(rand_num).type_as(gt_boxes).long()
                 bg_inds = bg_inds[rand_num]
 
             elif fg_num_rois > 0 and bg_num_rois == 0:
                 # sampling fg
-                #rand_num = torch.floor(torch.rand(rois_per_image) * fg_num_rois).long().cuda()
+                # rand_num = torch.floor(torch.rand(rois_per_image) * fg_num_rois).long().cuda()
                 rand_num = np.floor(np.random.rand(rois_per_image) * fg_num_rois)
                 rand_num = torch.from_numpy(rand_num).type_as(gt_boxes).long()
                 fg_inds = fg_inds[rand_num]
@@ -182,7 +185,7 @@ class _ProposalTargetLayer(nn.Module):
                 bg_rois_per_this_image = 0
             elif bg_num_rois > 0 and fg_num_rois == 0:
                 # sampling bg
-                #rand_num = torch.floor(torch.rand(rois_per_image) * bg_num_rois).long().cuda()
+                # rand_num = torch.floor(torch.rand(rois_per_image) * bg_num_rois).long().cuda()
                 rand_num = np.floor(np.random.rand(rois_per_image) * bg_num_rois)
                 rand_num = torch.from_numpy(rand_num).type_as(gt_boxes).long()
 
@@ -199,7 +202,7 @@ class _ProposalTargetLayer(nn.Module):
             labels_batch[i].copy_(labels[i][keep_inds])
             # print(info_batch[i].shape, box_info[i].shape)
             # exit()
-            info_batch[i].copy_(boxes_info[i][keep_inds,:])
+            info_batch[i].copy_(boxes_info[i][keep_inds, :])
 
             # Clamp labels for the background RoIs to 0
             if fg_rois_per_this_image < rois_per_image:
@@ -207,14 +210,14 @@ class _ProposalTargetLayer(nn.Module):
                 info_batch[i][fg_rois_per_this_image:, :] = 0
 
             rois_batch[i] = all_rois[i][keep_inds]
-            rois_batch[i,:,0] = i
+            rois_batch[i, :, 0] = i
 
             gt_rois_batch[i] = gt_boxes[i][gt_assignment[i][keep_inds]]
 
         bbox_target_data = self._compute_targets_pytorch(
-                rois_batch[:,:,1:5], gt_rois_batch[:,:,:4])
+            rois_batch[:, :, 1:5], gt_rois_batch[:, :, :4])
 
         bbox_targets, bbox_inside_weights = \
-                self._get_bbox_regression_labels_pytorch(bbox_target_data, labels_batch, num_classes)
+            self._get_bbox_regression_labels_pytorch(bbox_target_data, labels_batch, num_classes)
 
         return labels_batch, rois_batch, bbox_targets, bbox_inside_weights, info_batch
