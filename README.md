@@ -39,20 +39,21 @@ Compile the cuda dependencies using following simple commands:
 ```
 cd lib
 python setup.py build develop
+cd ..
 ```
 
-<!-- You will meet some errors about coco dataset: (not the best but the easiest solution)
+You will meet some errors about coco dataset: (not the best but the easiest solution)
 ```
 cd data
 git clone https://github.com/pdollar/coco.git 
 cd coco/PythonAPI
 make
-``` -->
-<!-- 
+```
+
 If you meet some error about spicy, make sure you downgrade to scipy=1.1.0:
 ```
 pip install scipy=1.1.0
-``` -->
+```
 
 
 ## Run Demo
