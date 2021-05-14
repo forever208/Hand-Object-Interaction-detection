@@ -165,7 +165,7 @@ python trainval_net.py --model_name handobj_100K --log_name=handobj_100K --datas
 ## Test
 To evaluate the detection performance, run:
 ```
-python test_net.py --model_name=handobj_100K --save_name=handobj_100K --cuda --checkepoch=xxx --checkpoint=xxx
+python test_net_Colab.py --model_name=handobj_100k --save_name=handobj_100k --cuda --checkepoch=8 --checkpoint=89999
 ```
 
 
