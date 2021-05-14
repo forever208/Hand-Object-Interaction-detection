@@ -11,7 +11,6 @@ import pprint
 import time
 
 import torch
-from torch.autograd import Variable
 import torch.nn as nn
 from torch.utils.data.sampler import Sampler
 
@@ -47,8 +46,8 @@ def parse_args():
                         default=10000, type=int)
 
     parser.add_argument('--save_dir', dest='save_dir',
-                        help='directory to save models', default="models",
-                        type=str)
+                        help='directory to save models',
+                        default="models", type=str)
     parser.add_argument('--nw', dest='num_workers',
                         help='number of worker to load data',
                         default=0, type=int)
@@ -107,9 +106,10 @@ def parse_args():
                         action='store_true')
     # save model and log
     parser.add_argument('--model_name',
-                        help='directory to save models', required=True, type=str)
+                        help='directory to save trained models',
+                        required=True, type=str)
     parser.add_argument('--log_name',
-                        help='directory to save logs', type=str)
+                        help='directory to save training logs', type=str)
 
     args = parser.parse_args()
     return args
@@ -133,7 +133,6 @@ class sampler(Sampler):
 
         if self.leftover_flag:
             self.rand_num_view = torch.cat((self.rand_num_view, self.leftover), 0)
-
         return iter(self.rand_num_view)
 
     def __len__(self):
@@ -141,7 +140,7 @@ class sampler(Sampler):
 
 
 if __name__ == '__main__':
-    # arguments
+    # command arguments
     args = parse_args()
     print('Called with args:')
     print(args)
@@ -173,17 +172,17 @@ if __name__ == '__main__':
     train_size = len(roidb)
     print('{:d} roidb entries'.format(len(roidb)))
 
-    # model output path
-    output_dir = args.save_dir + "/" + args.net + "_" + args.model_name + "/" + args.dataset
-    print(f'\n---------> model output_dir = {output_dir}\n')
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
     # build up dataloader pipeline
     sampler_batch = sampler(train_size, args.batch_size)
     dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, imdb.num_classes, training=True)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                                              sampler=sampler_batch, num_workers=args.num_workers)
+
+    # output path of the trained model
+    output_dir = args.save_dir + "/" + args.net + "_" + args.model_name + "/" + args.dataset
+    print(f'\n---------> model output_dir = {output_dir}\n')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     # initialize the tensor holder.
     im_data = torch.FloatTensor(1).to(device)
@@ -200,7 +199,7 @@ if __name__ == '__main__':
     elif args.net == 'res152':
         fasterRCNN = resnet(imdb.classes, 152, pretrained=True, class_agnostic=args.class_agnostic)
     else:
-        print("Network is not defined")
+        raise Exception("network is not defined")
     fasterRCNN.create_architecture()
 
     # set optimizer
@@ -219,6 +218,8 @@ if __name__ == '__main__':
         optimizer = torch.optim.Adam(params)
     elif args.optimizer == "sgd":
         optimizer = torch.optim.SGD(params, momentum=cfg.TRAIN.MOMENTUM)
+    else:
+        raise Exception("optimizer is not defined")
 
     # load the half-trained model
     if args.resume:

@@ -7,7 +7,6 @@ from __future__ import absolute_import
 # Written by Ross Girshick
 # --------------------------------------------------------
 
-import xml.dom.minidom as minidom
 
 import os
 # import PIL
@@ -29,25 +28,26 @@ from .voc_eval import voc_eval, voc_eval_hand
 # >>>> obsolete, because it depends on sth outside of this project
 from model.utils.config import cfg
 
-try:
-    xrange          # Python 2
-except NameError:
-    xrange = range  # Python 3
-
-# <<<< obsolete
-
 
 class pascal_voc(imdb):
+
     def __init__(self, image_set, year, devkit_path=None):
-        imdb.__init__(self, 'voc_' + year + '_' + image_set)
+        """
+
+        :param image_set: string, 'train' or 'val' or 'trainval' or 'test'
+        :param year: string, '2007'
+        :param devkit_path:
+        """
+        imdb.__init__(self, 'voc_' + year + '_' + image_set)   # equal to super().__init__(para1，para2, ...)
         self._year = year
         self._image_set = image_set
         self._devkit_path = self._get_default_path() if devkit_path is None \
-            else devkit_path
-        self._data_path = os.path.join(self._devkit_path, 'VOC' + self._year)
+                                                     else devkit_path
+        self._data_path = os.path.join(self._devkit_path, 'VOC'+self._year)
         self._classes = ('__background__',  # always index 0
-                         'targetobject', 'hand')
-        self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
+                         'targetobject',
+                         'hand')
+        self._class_to_ind = dict(zip(self.classes, range(self.num_classes)))
         self._image_ext = '.jpg'
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
@@ -64,10 +64,8 @@ class pascal_voc(imdb):
                        'rpn_file': None,
                        'min_size': 2}
 
-        assert os.path.exists(self._devkit_path), \
-            'VOCdevkit path does not exist: {}'.format(self._devkit_path)
-        assert os.path.exists(self._data_path), \
-            'Path does not exist: {}'.format(self._data_path)
+        assert os.path.exists(self._devkit_path), 'VOCdevkit path does not exist: {}'.format(self._devkit_path)
+        assert os.path.exists(self._data_path), 'Path does not exist: {}'.format(self._data_path)
 
     def image_path_at(self, i):
         """
@@ -107,14 +105,13 @@ class pascal_voc(imdb):
 
     def _get_default_path(self):
         """
-        Return the default path where PASCAL VOC is expected to be installed.
+        Return the default path where PASCAL_VOC dataset is expected to be installed.
         """
-        default_path = os.path.join(cfg.DATA_DIR, 'VOCdevkit' + self._year +'_handobj_100K')
+        default_path = os.path.join(cfg.DATA_DIR, 'VOCdevkit' + self._year + '_handobj_100K')
         print()
         print(f'--------> dataset path = {default_path}')
         print()
         return default_path
-        
 
     def gt_roidb(self):
         """
@@ -193,7 +190,7 @@ class pascal_voc(imdb):
         raw_data = sio.loadmat(filename)['boxes'].ravel()
 
         box_list = []
-        for i in xrange(raw_data.shape[0]):
+        for i in range(raw_data.shape[0]):
             boxes = raw_data[i][:, (1, 0, 3, 2)] - 1
             keep = ds_utils.unique_boxes(boxes)
             boxes = boxes[keep, :]
@@ -205,7 +202,6 @@ class pascal_voc(imdb):
 
     def _is_not_legimate(self, ele):
         return (ele == None or ele.text == 'None' or ele.text == None)
-
 
     def _load_pascal_annotation(self, index):
         """
@@ -239,15 +235,14 @@ class pascal_voc(imdb):
         unitdy = np.zeros((num_objs), dtype=np.float32)
         handside = np.zeros((num_objs), dtype=np.int32)
 
-
         # Load object bounding boxes into a data frame.
         for ix, obj in enumerate(objs):
             bbox = obj.find('bndbox')
             # Make pixel indexes 0-based
-            x1 = max(float(bbox.find('xmin').text) - 1,0)
-            y1 = max(float(bbox.find('ymin').text) - 1,0)
-            x2 = max(float(bbox.find('xmax').text) - 1,0)
-            y2 = max(float(bbox.find('ymax').text) - 1,0)
+            x1 = max(float(bbox.find('xmin').text) - 1, 0)
+            y1 = max(float(bbox.find('ymin').text) - 1, 0)
+            x2 = max(float(bbox.find('xmax').text) - 1, 0)
+            y2 = max(float(bbox.find('ymax').text) - 1, 0)
 
             diffc = obj.find('difficult')
             difficult = 0 if diffc == None else int(diffc.text)
@@ -272,7 +267,7 @@ class pascal_voc(imdb):
             contactleft[ix] = contactl
 
             mag = obj.find('magnitude')
-            mag = 0 if self._is_not_legimate(mag) else float(mag.text) * 0.001 # balance scale
+            mag = 0 if self._is_not_legimate(mag) else float(mag.text) * 0.001  # balance scale
             magnitude[ix] = mag
 
             # n_n = obj.find('normalizednorm')
@@ -290,7 +285,6 @@ class pascal_voc(imdb):
             lr = obj.find('handside')
             lr = 0 if self._is_not_legimate(lr) else float(lr.text)
             handside[ix] = lr
-
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
 
@@ -335,11 +329,11 @@ class pascal_voc(imdb):
                     if dets == []:
                         continue
                     # the VOCdevkit expects 1-based indices
-                    for k in xrange(dets.shape[0]):
+                    for k in range(dets.shape[0]):
                         f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f} {:.1f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f}\n'.
                                 format(index, dets[k, 4],
                                        dets[k, 0] + 1, dets[k, 1] + 1,
-                                       dets[k, 2] + 1, dets[k, 3] + 1, 
+                                       dets[k, 2] + 1, dets[k, 3] + 1,
                                        int(dets[k, 5]), dets[k, 6], dets[k, 7], dets[k, 8], dets[k, 9], dets[k, 10]))
 
     def _do_python_eval(self, output_dir='output'):
@@ -374,16 +368,14 @@ class pascal_voc(imdb):
             with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
                 pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
 
-
             if cls == 'hand':
-                filename = self._get_voc_results_file_template() #.format(cls)
+                filename = self._get_voc_results_file_template()  # .format(cls)
                 for constraint in ['handstate', 'handside', 'objectbbox', 'all']:
-                    rec, prec, ap = voc_eval_hand(filename, annopath, imagesetfile, cls, cachedir, ovthresh=0.5, use_07_metric=use_07_metric, constraint=constraint)
+                    rec, prec, ap = voc_eval_hand(filename, annopath, imagesetfile, cls, cachedir, ovthresh=0.5,
+                                                  use_07_metric=use_07_metric, constraint=constraint)
                     print('AP for {} + {} = {:.4f}'.format(cls, constraint, ap))
                     with open(os.path.join(output_dir, cls + f'_pr_{constraint}.pkl'), 'wb') as f:
                         pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
-                
-            
 
         print('Mean AP = {:.4f}'.format(np.mean(aps)))
         print('~~~~~~~~')
