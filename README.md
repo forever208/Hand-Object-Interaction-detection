@@ -58,10 +58,10 @@ pip install scipy=1.1.0
 ## Run Demo
 
 ### Download the model
-Creat a folder `./models/res101_handobj_100k/pascal_voc`, then download the model.
+Creat a folder `./models/res101_handobj_100K/pascal_voc`, then download the model.
 ```
-mkdir -p ./models/res101_handobj_100k/pascal_voc
-cd models/res101_handobj_100k/pascal_voc
+mkdir -p ./models/res101_handobj_100K/pascal_voc
+cd models/res101_handobj_100K/pascal_voc
 wget wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim" -O faster_rcnn_1_8_89999.pth && rm -rf /tmp/cookies.txt
 ```
 
