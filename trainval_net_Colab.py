@@ -20,7 +20,6 @@ from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.utils.net_utils import adjust_learning_rate, save_checkpoint, clip_gradient
-from model.faster_rcnn.vgg16 import vgg16
 from model.faster_rcnn.resnet import resnet
 
 
@@ -58,7 +57,7 @@ def parse_args():
                         help='whether use CUDA',
                         action='store_true')
     parser.add_argument('--ls', dest='large_scale',
-                        help='whether use large imag scale',
+                        help='whether use large image scale',
                         action='store_true')
     parser.add_argument('--mGPUs', dest='mGPUs',
                         help='whether use multiple GPUs',
@@ -89,7 +88,7 @@ def parse_args():
                         help='training session',
                         default=1, type=int)
 
-    # resume trained model
+    # load the haft-trained model
     parser.add_argument('--r', dest='resume',
                         help='resume checkpoint or not',
                         default=False, type=bool)
@@ -102,17 +101,16 @@ def parse_args():
     parser.add_argument('--checkpoint', dest='checkpoint',
                         help='checkpoint to load model',
                         default=0, type=int)
+
     # log and diaplay
     parser.add_argument('--use_tfb', dest='use_tfboard',
                         help='whether use tensorboard',
                         action='store_true')
-
     # save model and log
     parser.add_argument('--model_name',
                         help='directory to save models', required=True, type=str)
     parser.add_argument('--log_name',
-                        help='directory to save logs',
-                        type=str)
+                        help='directory to save logs', type=str)
 
     args = parser.parse_args()
     return args
@@ -144,7 +142,6 @@ class sampler(Sampler):
 
 
 if __name__ == '__main__':
-
     args = parse_args()
     print('Called with args:')
     print(args)
@@ -154,10 +151,10 @@ if __name__ == '__main__':
         args.imdbval_name = 'voc_2007_test'
         args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32, 64]', 'ANCHOR_RATIOS', '[0.5,1,2]', 'MAX_NUM_GT_BOXES', '20']
     else:
-        assert 'Unknown dataset error!'
+        raise Exception("we currently only support pascal_voc dataset")
 
+    # whether use large image scale
     args.cfg_file = 'cfgs/{}_ls.yml'.format(args.net) if args.large_scale else 'cfgs/{}.yml'.format(args.net)
-
     if args.cfg_file is not None:
         cfg_from_file(args.cfg_file)
     if args.set_cfgs is not None:
@@ -165,63 +162,49 @@ if __name__ == '__main__':
 
     print('Using config:')
     pprint.pprint(cfg)
-
     np.random.seed(cfg.RNG_SEED)
 
-    if torch.cuda.is_available() and not args.cuda:
-        print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+    # automatically choose use GPU or not
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    cfg.USE_GPU_NMS = True if torch.cuda.is_available() else False
 
-    # train set
+    # Load training data
     cfg.TRAIN.USE_FLIPPED = False
-    cfg.USE_GPU_NMS = args.cuda
     imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdb_name)
     train_size = len(roidb)
     print('{:d} roidb entries'.format(len(roidb)))
 
-    # output path
+    # model output path
     output_dir = args.save_dir + "/" + args.net + "_" + args.model_name + "/" + args.dataset
     print(f'\n---------> model output_dir = {output_dir}\n')
-
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    # build up dataloader pipeline
     sampler_batch = sampler(train_size, args.batch_size)
-
-    dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
-                             imdb.num_classes, training=True)
-
+    dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, imdb.num_classes, training=True)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                                              sampler=sampler_batch, num_workers=args.num_workers)
 
-    # initilize the tensor holder here.
-    im_data = torch.FloatTensor(1)
-    im_info = torch.FloatTensor(1)
-    num_boxes = torch.LongTensor(1)
-    gt_boxes = torch.FloatTensor(1)
-    box_info = torch.FloatTensor(1)
-
-    # ship to cuda
-    if args.cuda:
-        im_data = im_data.cuda()
-        im_info = im_info.cuda()
-        num_boxes = num_boxes.cuda()
-        gt_boxes = gt_boxes.cuda()
-        box_info = box_info.cuda()
+    # initialize the tensor holder here.
+    im_data = torch.FloatTensor(1).to(device)
+    im_info = torch.FloatTensor(1).to(device)
+    num_boxes = torch.LongTensor(1).to(device)
+    gt_boxes = torch.FloatTensor(1).to(device)
+    box_info = torch.FloatTensor(1).to(device)
 
     # make variable
     im_data = Variable(im_data)
     im_info = Variable(im_info)
     num_boxes = Variable(num_boxes)
     gt_boxes = Variable(gt_boxes)
-    box_info = Variable(box_info)
+    box_info = Variable(box_info)    # ground truth link info between hand-object
 
     if args.cuda:
         cfg.CUDA = True
 
-    # initilize the network here.
-    if args.net == 'vgg16':
-        fasterRCNN = vgg16(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
-    elif args.net == 'res101':
+    # initialize the network here.
+    if args.net == 'res101':
         fasterRCNN = resnet(imdb.classes, 101, pretrained=True, class_agnostic=args.class_agnostic)
     elif args.net == 'res50':
         fasterRCNN = resnet(imdb.classes, 50, pretrained=True, class_agnostic=args.class_agnostic)
@@ -229,13 +212,10 @@ if __name__ == '__main__':
         fasterRCNN = resnet(imdb.classes, 152, pretrained=True, class_agnostic=args.class_agnostic)
     else:
         print("Network is not defined")
-        pdb.set_trace()
-
     fasterRCNN.create_architecture()
 
-    lr = cfg.TRAIN.LEARNING_RATE
+    # set optimizer
     lr = args.lr
-
     params = []
     for key, value in dict(fasterRCNN.named_parameters()).items():
         if value.requires_grad:
@@ -245,15 +225,13 @@ if __name__ == '__main__':
             else:
                 params += [{'params': [value], 'lr': lr, 'weight_decay': cfg.TRAIN.WEIGHT_DECAY}]
 
-    if args.cuda:
-        fasterRCNN.cuda()
-
     if args.optimizer == "adam":
         lr = lr * 0.1
         optimizer = torch.optim.Adam(params)
     elif args.optimizer == "sgd":
         optimizer = torch.optim.SGD(params, momentum=cfg.TRAIN.MOMENTUM)
 
+    # load the haft-trained model
     if args.resume:
         load_name = os.path.join(output_dir,
                                  'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
@@ -277,18 +255,24 @@ if __name__ == '__main__':
         logger = SummaryWriter(f"logs/log_{args.log_name}")
         print(f'\n---------> log_dir = logs/log_{args.log_name}\n')
 
+    """
+    start predictions
+    """
+    iters_per_epoch = int(train_size / args.batch_size)
+    fasterRCNN.to(device)
     for epoch in range(args.start_epoch, args.max_epochs + 1):
         # setting to train mode
         fasterRCNN.train()
         loss_temp = 0
         start = time.time()
 
+        # lr=0.1*lr for every 3 epochs
         if epoch % (args.lr_decay_step + 1) == 0:
             adjust_learning_rate(optimizer, args.lr_decay_gamma)
             lr *= args.lr_decay_gamma
 
+        # load a batch of images
         data_iter = iter(dataloader)
-        iters_per_epoch = int(train_size / args.batch_size)
         for step in range(iters_per_epoch):
             data = next(data_iter)
             with torch.no_grad():
@@ -297,30 +281,27 @@ if __name__ == '__main__':
                 gt_boxes.resize_(data[2].size()).copy_(data[2])
                 num_boxes.resize_(data[3].size()).copy_(data[3])
                 box_info.resize_(data[4].size()).copy_(data[4])
-                
+
+            # get predictions
             fasterRCNN.zero_grad()
             rois, cls_prob, bbox_pred, \
             rpn_loss_cls, rpn_loss_box, \
             RCNN_loss_cls, RCNN_loss_bbox, \
             rois_label, loss_list = fasterRCNN(im_data, im_info, gt_boxes, num_boxes, box_info)
 
-            loss = rpn_loss_cls.mean() + rpn_loss_box.mean() \
-                   + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean()
-
-            # loss_list: auxiliary loss terms from auziliary layers
+            # compute loss
+            loss = rpn_loss_cls.mean() + rpn_loss_box.mean() + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean()
             for score_loss in loss_list:
                 if type(score_loss[1]) is not int:
-                    loss += score_loss[1].mean()
-
+                    loss += score_loss[1].mean()    # auxiliary loss terms from auxiliary layers
             loss_temp += loss.item()
 
-            # backward
+            # back propagation and update weights
             optimizer.zero_grad()
             loss.backward()
-            if args.net == "vgg16":
-                clip_gradient(fasterRCNN, 10.)
             optimizer.step()
 
+            # display interval training info
             if step % args.disp_interval == 0:
                 end = time.time()
                 if step > 0:
@@ -372,6 +353,7 @@ if __name__ == '__main__':
                 loss_temp = 0
                 start = time.time()
 
+        # save model after each epoch
         save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
         save_checkpoint({
             'session': args.session,
