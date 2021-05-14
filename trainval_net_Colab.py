@@ -33,14 +33,14 @@ def parse_args():
                         help='training dataset',
                         default='pascal_voc', type=str)
     parser.add_argument('--net', dest='net',
-                        help='vgg16, res101',
-                        default='vgg16', type=str)
+                        help='res50, res101',
+                        default='res101', type=str)
     parser.add_argument('--start_epoch', dest='start_epoch',
                         help='starting epoch',
                         default=1, type=int)
     parser.add_argument('--epochs', dest='max_epochs',
                         help='number of epochs to train',
-                        default=20, type=int)
+                        default=10, type=int)
     parser.add_argument('--disp_interval', dest='disp_interval',
                         help='number of iterations to display',
                         default=100, type=int)
@@ -79,7 +79,7 @@ def parse_args():
                         default=0.001, type=float)
     parser.add_argument('--lr_decay_step', dest='lr_decay_step',
                         help='step to do learning rate decay, unit is epoch',
-                        default=5, type=int)
+                        default=3, type=int)
     parser.add_argument('--lr_decay_gamma', dest='lr_decay_gamma',
                         help='learning rate decay ratio',
                         default=0.1, type=float)
@@ -132,7 +132,6 @@ class sampler(Sampler):
     def __iter__(self):
         rand_num = torch.randperm(self.num_per_batch).view(-1, 1) * self.batch_size
         self.rand_num = rand_num.expand(self.num_per_batch, self.batch_size) + self.range
-
         self.rand_num_view = self.rand_num.view(-1)
 
         if self.leftover_flag:
@@ -192,7 +191,7 @@ if __name__ == '__main__':
                              imdb.num_classes, training=True)
 
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                                             sampler=sampler_batch, num_workers=args.num_workers, pin_memory=True)
+                                             sampler=sampler_batch, num_workers=args.num_workers)
 
     # initilize the tensor holder here.
     im_data = torch.FloatTensor(1)
