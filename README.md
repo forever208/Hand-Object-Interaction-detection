@@ -9,21 +9,26 @@ Running the repo in Colab is recommended, copy the file [HOI detection.ipynb](ht
 
 
 
-## Prerequisites (Colab user can skip this step) 
+## 【1】Prerequisites (Colab user can skip this step) 
 
 * Python 3.7
 * Pytorch 1.6
-* CUDA 10.0
+* CUDA 10.1
 
-Create a new conda called handobj, install pytorch-1.0.1 and cuda-10.0:
+Create a new conda called handobj, install pytorch-1.6.0
 ```
 conda create --name handobj python=3.7
 conda activate handobj
-conda install pytorch==1.6.0 torchvision==0.7.0 cpuonly -c pytorch
+
+# for cpu
+conda install pytorch==1.6.0 torchvision==0.7.0 cpuonly -c pytorch  
+
+# for GPU
+conda install pytorch==1.6.0 torchvision==0.7.0 cudatoolkit=10.1 -c pytorch
 ```
 
 
-## Installation & Compile
+## 【2】Installation & Compile
 
 Clone the code
 ```
@@ -49,11 +54,12 @@ cd data
 git clone https://github.com/pdollar/coco.git 
 cd coco/PythonAPI
 make
+cd ../../..
 ```
 
 
 
-## Run Demo
+## 【3】Run Demo
 
 ### Download the model
 Creat a folder `./models/res101_handobj_100K/pascal_voc`, then download the model.
@@ -61,6 +67,7 @@ Creat a folder `./models/res101_handobj_100K/pascal_voc`, then download the mode
 mkdir -p ./models/res101_handobj_100K/pascal_voc
 cd models/res101_handobj_100K/pascal_voc
 wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim" -O faster_rcnn_1_8_89999.pth && rm -rf /tmp/cookies.txt
+cd ../../..
 ```
 
 the folder structure looks like this:
@@ -114,7 +121,7 @@ Label definitions:
 
 
 
-## Train
+## 【4】Train
 
 ### Download dataset
 creat a folder `./data`, then download the dataset and unzip it.
@@ -163,14 +170,14 @@ python trainval_net.py --model_name handobj_100K --log_name=handobj_100K --datas
 
 
 
-## Test
+## 【5】Test
 To evaluate the detection performance, run:
 ```
 python test_net_Colab.py --model_name=handobj_100k --save_name=handobj_100k --cuda --checkepoch=8 --checkpoint=89999
 ```
 
 
-## Benchmarking (AP)
+## 【6】Benchmarking (AP)
 <!-- Table, test on all -->
 - Tested on the testset of our **100K and ego** dataset:
 <table><tbody>
