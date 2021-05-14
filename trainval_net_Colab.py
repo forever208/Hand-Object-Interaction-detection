@@ -166,11 +166,11 @@ if __name__ == '__main__':
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     cfg.USE_GPU_NMS = True if torch.cuda.is_available() else False
 
-    # Load training data
+    # Load training data from xml files
     cfg.TRAIN.USE_FLIPPED = False
     imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdb_name)
     train_size = len(roidb)
-    print('{:d} roidb entries'.format(len(roidb)))
+    print('{:d} number of training images'.format(len(roidb)))
 
     # build up dataloader pipeline
     sampler_batch = sampler(train_size, args.batch_size)

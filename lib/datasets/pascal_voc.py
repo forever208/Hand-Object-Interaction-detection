@@ -40,13 +40,13 @@ class pascal_voc(imdb):
         self._devkit_path = self._get_default_path() if devkit_path is None else devkit_path    # 'data/VOCdevkit2007_handobj_100K'
         self._data_path = os.path.join(self._devkit_path, 'VOC'+self._year)    # 'data/VOCdevkit2007_handobj_100K/VOC2007'
 
-        self._classes = ('__background__', 'targetobject', 'hand')    # __background__ always set as 0
-        # {'__background__':0, 'targetobject':1, 'hand':2}
-        self._class_to_ind = dict(zip(self.classes, range(self.num_classes)))
+        self._classes = ('__background__', 'targetobject', 'hand')    # rewrite this attribute of parent class
+        self._class_to_ind = dict(zip(self.classes, range(self.num_classes)))    # {'__background__':0, 'targetobject':1, 'hand':2}
         self._image_ext = '.jpg'
-        self._image_index = self._load_image_set_index()
+        self._image_index = self._load_image_set_index()    # img filenames without .jpg ['boardgame_v_-4m5TwI-698_frame000134', ...]
+
         # self._roidb_handler = self.selective_search_roidb    # Default to roidb handler
-        self._roidb_handler = self.gt_roidb
+        self._roidb_handler = self.gt_roidb    # .pkl cache file which contains all annotations (parsed from xml)
         self._salt = str(uuid.uuid4())
         self._comp_id = 'comp4'
 
@@ -78,20 +78,21 @@ class pascal_voc(imdb):
 
     def image_path_from_index(self, index):
         """
-        Construct an image path from the image's "index" identifier.
+        :param index: 'boardgame_v_-4m5TwI-698_frame000134'
+        :return: image path, 'data/VOCdevkit2007_handobj_100K/VOC2007/JPEGImages/boardgame_v_-4m5TwI-698_frame000134.jpg'
         """
-        image_path = os.path.join(self._data_path, 'JPEGImages',
-                                  index + self._image_ext)
-        assert os.path.exists(image_path), \
-            'Path does not exist: {}'.format(image_path)
+        image_path = os.path.join(self._data_path, 'JPEGImages', index+self._image_ext)
+        assert os.path.exists(image_path), 'Path does not exist: {}'.format(image_path)
         return image_path
 
 
     def _load_image_set_index(self):
         """
-        Load the index listed in this dataset's image file.
+        Load the image filenames based on the file: 'data/VOCdevkit2007_handobj_100K/VOC2007/ImageSets/Main/val.txt')
+        :return: a list of all image filenames (without postfix .jpg), ['boardgame_v_-4m5TwI-698_frame000134', ...]
         """
-        # 'data/VOCdevkit2007_handobj_100K/VOC2007/ImageSets/Main/val.txt
+
+        # "data/VOCdevkit2007_handobj_100K/VOC2007/ImageSets/Main/val.txt"
         image_set_file = os.path.join(self._data_path, 'ImageSets', 'Main', self._image_set+'.txt')
         assert os.path.exists(image_set_file), 'Path does not exist: {}'.format(image_set_file)
 
@@ -102,7 +103,7 @@ class pascal_voc(imdb):
 
     def _get_default_path(self):
         """
-        Return the default path of PASCAL_VOC dataset, 'data/VOCdevkit2007_handobj_100K'
+        :return: the default path of PASCAL_VOC dataset, 'data/VOCdevkit2007_handobj_100K'
         """
         default_path = os.path.join(cfg.DATA_DIR, 'VOCdevkit' + self._year + '_handobj_100K')
         print(f'--------> dataset path = {default_path}')
@@ -111,21 +112,21 @@ class pascal_voc(imdb):
 
     def gt_roidb(self):
         """
-        Return the database of ground-truth regions of interest.
         This function saves a dataset cache file to speed up future calls.
+        :return: .pkl cache file which contains all annotations (parsed from xml)
         """
 
-        # './data/cache_handobj_100K/VOC_2007_trainval_gt_roidb.pkl'
+        # absolute dir '/.../data/cache_handobj_100K/VOC_2007_trainval_gt_roidb.pkl'
         cache_file = os.path.join(self.cache_path, self.name+'_gt_roidb.pkl')
 
-        # load sequenced data
+        # load sequenced data from .pkl cache file
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 roidb = pickle.load(fid)
             print('{} gt roidb loaded from {}'.format(self.name, cache_file))
             return roidb
 
-        # save dataset into sequence
+        # save the annotation (parsed from xml) into .pkl cache file
         gt_roidb = [self._load_pascal_annotation(index) for index in self.image_index]
         with open(cache_file, 'wb') as fid:
             pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
@@ -208,31 +209,25 @@ class pascal_voc(imdb):
         return (ele == None or ele.text == 'None' or ele.text == None)
 
 
+    """core function that parse the xml annotations"""
     def _load_pascal_annotation(self, index):
         """
-        Load image and bounding boxes info from XML file in the PASCAL VOC
-        format.
-        :param index:
-        :return:
+        given an xml file (PASCAL VOC format), parse the ground truth info
+        :param index: string, an image filename (without .jpg), e.g. 'boardgame_v_-4m5TwI-698_frame000134'
+        :return: a dictionary of gt labels
         """
+
+        # 'data/VOCdevkit2007_handobj_100K/VOC2007/Annotations/boardgame_v_-4m5TwI-698_frame000134.xml'
         filename = os.path.join(self._data_path, 'Annotations', index + '.xml')
         tree = ET.parse(filename)
         objs = tree.findall('object')
-        # if not self.config['use_diff']:
-        #     # Exclude the samples labeled as difficult
-        #     non_diff_objs = [
-        #         obj for obj in objs if int(obj.find('difficult').text) == 0]
-        #     # if len(non_diff_objs) != len(objs):
-        #     #     print 'Removed {} difficult objects'.format(
-        #     #         len(objs) - len(non_diff_objs))
-        #     objs = non_diff_objs
         num_objs = len(objs)
 
+        # initialise the ground truth info as zero np array
         boxes = np.zeros((num_objs, 4), dtype=np.uint16)
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
-        # "Seg" area for pascal is just the box area
-        seg_areas = np.zeros((num_objs), dtype=np.float32)
+        seg_areas = np.zeros((num_objs), dtype=np.float32)    # "Seg" area in pascal is just the rectangle area of bbox
         ishards = np.zeros((num_objs), dtype=np.int32)
         contactstate = np.zeros((num_objs), dtype=np.int32)
         contactright = np.zeros((num_objs), dtype=np.int32)
@@ -242,7 +237,7 @@ class pascal_voc(imdb):
         unitdy = np.zeros((num_objs), dtype=np.float32)
         handside = np.zeros((num_objs), dtype=np.int32)
 
-        # Load object bounding boxes into a data frame.
+        # Load gt labels for every object (hand or target_object)
         for ix, obj in enumerate(objs):
             bbox = obj.find('bndbox')
             # Make pixel indexes 0-based
@@ -251,11 +246,12 @@ class pascal_voc(imdb):
             x2 = max(float(bbox.find('xmax').text) - 1, 0)
             y2 = max(float(bbox.find('ymax').text) - 1, 0)
 
+            # labels that we don't care too much
             diffc = obj.find('difficult')
             difficult = 0 if diffc == None else int(diffc.text)
             ishards[ix] = difficult
 
-            cls = self._class_to_ind[obj.find('name').text.lower().strip()]
+            cls = self._class_to_ind[obj.find('name').text.lower().strip()]    # cls = 1 or 2
             boxes[ix, :] = [x1, y1, x2, y2]
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0

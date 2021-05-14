@@ -8,18 +8,15 @@ import numpy as np
 from model.utils.config import cfg
 from datasets.factory import get_imdb
 import PIL
-import pdb
 
 
 def prepare_roidb(imdb):
-    """Enrich the imdb's roidb by adding some derived quantities that
-    are useful for training. This function precomputes the maximum
-    overlap, taken over ground-truth boxes, between each ROI and
-    each ground-truth box. The class with maximum overlap is also
-    recorded.
+    """
+    This function pre-computes the maximum overlap, taken over ground-truth boxes, between each ROI and each gt box.
+    The class with maximum overlap is also recorded.
     """
 
-    roidb = imdb.roidb
+    roidb = imdb.roidb    # the .pkl cache file which contains all training annotations (parsed from xml)
     if not (imdb.name.startswith('coco')):
         sizes = [PIL.Image.open(imdb.image_path_at(i)).size
                  for i in range(imdb.num_images)]
@@ -38,17 +35,23 @@ def prepare_roidb(imdb):
         max_classes = gt_overlaps.argmax(axis=1)
         roidb[i]['max_classes'] = max_classes
         roidb[i]['max_overlaps'] = max_overlaps
+
         # sanity checks
         # max overlap of 0 => class should be zero (background)
         zero_inds = np.where(max_overlaps == 0)[0]
         assert all(max_classes[zero_inds] == 0)
+
         # max overlap > 0 => class should not be zero (must be a fg class)
         nonzero_inds = np.where(max_overlaps > 0)[0]
         assert all(max_classes[nonzero_inds] != 0)
 
 
 def rank_roidb_ratio(roidb):
-    # rank roidb based on the ratio between width and height.
+    """
+    rank roidb based on the ratio between width and height.
+    :param roidb: the .pkl cache file which contains all training annotations (parsed from xml)
+    :return:
+    """
     ratio_large = 2  # largest ratio to preserve.
     ratio_small = 0.5  # smallest ratio to preserve.
 
@@ -96,7 +99,10 @@ def combined_roidb(imdb_names, training=True, leftright=False):
     """
 
     def get_training_roidb(imdb, leftright=False):
-        """Returns a roidb (Region of Interest database) for use in training."""
+        """
+        :param imdb: a pascal_voc() instance
+        :return: the .pkl cache file which contains all training annotations (parsed from xml)
+        """
         if cfg.TRAIN.USE_FLIPPED:
             if leftright:
                 print('Appending horizontally-flipped training examples...')
@@ -108,24 +114,22 @@ def combined_roidb(imdb_names, training=True, leftright=False):
                 print('done')
 
         print('Preparing training data...')
-
         prepare_roidb(imdb)
         # ratio_index = rank_roidb_ratio(imdb)
         print('done')
-
         return imdb.roidb
+
 
     def get_roidb(imdb_name):
         """
-
         :param imdb_name: string, 'voc_2007_trainval'
-        :return:
+        :return: the .pkl cache file which contains all annotations (parsed from xml)
         """
-        imdb = get_imdb(imdb_name)
+        imdb = get_imdb(imdb_name)    # return a pascal_voc() class instance which contains all annotations
         print('Loaded dataset `{:s}` for training'.format(imdb.name))
         imdb.set_proposal_method(cfg.TRAIN.PROPOSAL_METHOD)
         print('Set proposal method: {:s}'.format(cfg.TRAIN.PROPOSAL_METHOD))
-        print(imdb_name)
+        print('dataset name: ', imdb_name)
         roidb = get_training_roidb(imdb)
         return roidb
 
@@ -139,7 +143,7 @@ def combined_roidb(imdb_names, training=True, leftright=False):
         tmp = get_imdb(imdb_names.split('+')[1])
         imdb = datasets.imdb.imdb(imdb_names, tmp.classes)
     else:
-        imdb = get_imdb(imdb_names)
+        imdb = get_imdb(imdb_names)    # get a pascal_voc() class instance
 
     if training:
         roidb = filter_roidb(roidb)

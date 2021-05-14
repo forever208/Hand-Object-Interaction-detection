@@ -20,7 +20,7 @@ ROOT_DIR = osp.join(osp.dirname(__file__), '..', '..')
 
 
 class imdb(object):
-    """Image database."""
+    """Base class of loading image database+annotations."""
 
     def __init__(self, name, classes=None):
         """
@@ -39,7 +39,7 @@ class imdb(object):
         self._roidb_handler = self.default_roidb
         self.config = {}    # store dataset specific config options
 
-    @property
+    @property    # this function will be called once the class attributes are updated
     def name(self):
         return self._name
 
@@ -76,12 +76,14 @@ class imdb(object):
         #   flipped
         if self._roidb is not None:
             return self._roidb
+
+        # the attribute self._roidb == attribute self.roidb_handler which is rewrote in child class pascal_voc()
         self._roidb = self.roidb_handler()
         return self._roidb
 
     @property
     def cache_path(self):
-        # './data/cache_handobj_100K'
+        # '/.../data/cache_handobj_100K'
         cache_path = osp.abspath(osp.join(cfg.DATA_DIR, 'cache_handobj_100K'))
         if not os.path.exists(cache_path):
             os.makedirs(cache_path)
