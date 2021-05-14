@@ -9,12 +9,9 @@ from __future__ import absolute_import
 
 
 import os
-# import PIL
 import numpy as np
 import scipy.sparse
 import subprocess
-import math
-import glob
 import uuid
 import scipy.io as sio
 import xml.etree.ElementTree as ET
@@ -206,8 +203,10 @@ class pascal_voc(imdb):
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
+
     def _is_not_legimate(self, ele):
         return (ele == None or ele.text == 'None' or ele.text == None)
+
 
     def _load_pascal_annotation(self, index):
         """
@@ -311,10 +310,12 @@ class pascal_voc(imdb):
                 'magnitude': magnitude,
                 'handside': handside}
 
+
     def _get_comp_id(self):
         comp_id = (self._comp_id + '_' + self._salt if self.config['use_salt']
                    else self._comp_id)
         return comp_id
+
 
     def _get_voc_results_file_template(self):
         # VOCdevkit/results/VOC2007/Main/<comp_id>_det_test_aeroplane.txt
@@ -324,6 +325,7 @@ class pascal_voc(imdb):
             os.makedirs(filedir)
         path = os.path.join(filedir, filename)
         return path
+
 
     def _write_voc_results_file(self, all_boxes):
         for cls_ind, cls in enumerate(self.classes):
@@ -343,6 +345,7 @@ class pascal_voc(imdb):
                                        dets[k, 0] + 1, dets[k, 1] + 1,
                                        dets[k, 2] + 1, dets[k, 3] + 1,
                                        int(dets[k, 5]), dets[k, 6], dets[k, 7], dets[k, 8], dets[k, 9], dets[k, 10]))
+
 
     def _do_python_eval(self, output_dir='output'):
         annopath = os.path.join(
@@ -400,6 +403,7 @@ class pascal_voc(imdb):
         print('-- Thanks, The Management')
         print('--------------------------------------------------------------')
 
+
     def _do_matlab_eval(self, output_dir='output'):
         print('-----------------------------------------------------')
         print('Computing results with the official MATLAB eval code.')
@@ -415,6 +419,7 @@ class pascal_voc(imdb):
         print('Running:\n{}'.format(cmd))
         status = subprocess.call(cmd, shell=True)
 
+
     def evaluate_detections(self, all_boxes, output_dir):
         self._write_voc_results_file(all_boxes)
         self._do_python_eval(output_dir)
@@ -426,6 +431,7 @@ class pascal_voc(imdb):
                     continue
                 filename = self._get_voc_results_file_template().format(cls)
                 os.remove(filename)
+
 
     def competition_mode(self, on):
         if on:
@@ -440,5 +446,4 @@ if __name__ == '__main__':
     d = pascal_voc('trainval', '2007')
     res = d.roidb
     from IPython import embed;
-
     embed()

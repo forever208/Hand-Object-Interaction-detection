@@ -3,17 +3,12 @@
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Jiasen Lu, Jianwei Yang, based on code from Ross Girshick
 # --------------------------------------------------------
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-import _init_paths
 import os
 import sys
 import numpy as np
 import argparse
 import pprint
-import pdb
 import time
 import cv2
 import torch
@@ -39,11 +34,6 @@ from model.utils.blob import im_list_to_blob
 from model.faster_rcnn.vgg16 import vgg16
 from model.faster_rcnn.resnet import resnet
 import pdb
-
-try:
-    xrange  # Python 2
-except NameError:
-    xrange = range  # Python 3
 
 
 def parse_args():
@@ -154,9 +144,7 @@ def _get_image_blob(im):
 
 
 if __name__ == '__main__':
-
     args = parse_args()
-
     # print('Called with args:')
     # print(args)
 
@@ -178,7 +166,7 @@ if __name__ == '__main__':
     pascal_classes = np.asarray(['__background__', 'targetobject', 'hand'])
     args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32, 64]', 'ANCHOR_RATIOS', '[0.5, 1, 2]']
 
-    # initilize the network here.
+    # initialize the network here.
     if args.net == 'vgg16':
         fasterRCNN = vgg16(pascal_classes, pretrained=False, class_agnostic=args.class_agnostic)
     elif args.net == 'res101':
@@ -204,7 +192,7 @@ if __name__ == '__main__':
 
     print('load model successfully!')
 
-    # initilize the tensor holder here.
+    # initialize the tensor holder here.
     im_data = torch.FloatTensor(1)
     im_info = torch.FloatTensor(1)
     num_boxes = torch.LongTensor(1)
@@ -348,7 +336,7 @@ if __name__ == '__main__':
             if vis:
                 im2show = np.copy(im)
             obj_dets, hand_dets = None, None
-            for j in xrange(1, len(pascal_classes)):
+            for j in range(1, len(pascal_classes)):
                 # inds = torch.nonzero(scores[:,j] > thresh).view(-1)
                 if pascal_classes[j] == 'hand':
                     inds = torch.nonzero(scores[:, j] > thresh_hand).view(-1)
