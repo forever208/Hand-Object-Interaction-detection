@@ -10,13 +10,32 @@ from datasets.factory import get_imdb
 import PIL
 
 
+"""one example of roidb (labels):"""
+#    {'boxes': array([[  3, 446, 317, 675], [275, 425, 524, 632], [  3, 250, 182, 479], [ 21, 526, 810, 714]], dtype=uint16),
+#     'gt_classes': array([2, 2, 1, 1], dtype=int32),
+#     'gt_ishard': array([0, 0, 0, 0], dtype=int32),
+#     'gt_overlaps': <4x3 sparse matrix of type '<class 'numpy.float32'>' with 4 stored elements in Compressed Sparse Row format>,
+# 	'flipped': False, 'seg_areas': array([ 72450.,  52000.,  41400., 149310.], dtype=float32),
+# 	'contactstate': array([3, 3, 0, 0], dtype=int32),
+# 	'contactright': array([0, 0, 1, 0], dtype=int32),
+# 	'contactleft': array([0, 0, 0, 1], dtype=int32),
+# 	'unitdx': array([-0.3277727 ,  0.17134118,  0.        ,  0.        ], dtype=float32),
+# 	'unitdy': array([-0.9447566 ,  0.98521173,  0.        ,  0.        ], dtype=float32),
+# 	'magnitude': array([0.20746084, 0.09338094, 0.        , 0.        ], dtype=float32),
+# 	'handside': array([1, 0, 0, 0], dtype=int32), 'img_id': 85945,
+# 	'image': '/content/Hand-Object-Interaction-detection/data/VOCdevkit2007_handobj_100K/VOC2007/JPEGImages/study_v_37UX5-VFj7Q_frame000338.jpg',
+# 	'width': 1280, 'height': 720,
+# 	'max_classes': array([2, 2, 1, 1]),
+# 	'max_overlaps': array([1., 1., 1., 1.], dtype=float32), 'need_crop': 0}
+
+
 def prepare_roidb(imdb):
     """
     This function pre-computes the maximum overlap, taken over ground-truth boxes, between each ROI and each gt box.
     The class with maximum overlap is also recorded.
     """
 
-    roidb = imdb.roidb    # the .pkl cache file which contains all training annotations (parsed from xml)
+    roidb = imdb.roidb    # labels list [{}, {}, ...], each element is a dict that contains all labels for one image
     if not (imdb.name.startswith('coco')):
         sizes = [PIL.Image.open(imdb.image_path_at(i)).size
                  for i in range(imdb.num_images)]
@@ -49,13 +68,16 @@ def prepare_roidb(imdb):
 def rank_roidb_ratio(roidb):
     """
     rank roidb based on the ratio between width and height.
-    :param roidb: the .pkl cache file which contains all training annotations (parsed from xml)
-    :return:
+    :param roidb: labels list [{}, {}, ...], each element is a dict that contains all labels for one image
+    :return: 1D array [ratio1, ratio2,...], ratio order of all images from small to large
+             ratio_index: 1D array [4, 2, 1,...] shows the original index order before sorting
     """
     ratio_large = 2  # largest ratio to preserve.
     ratio_small = 0.5  # smallest ratio to preserve.
 
     ratio_list = []
+
+    # for each image, judge if it need crop
     for i in range(len(roidb)):
         width = roidb[i]['width']
         height = roidb[i]['height']
@@ -78,7 +100,10 @@ def rank_roidb_ratio(roidb):
 
 
 def filter_roidb(roidb):
-    # filter the image without bounding box.
+    """
+    filter the image without bounding box.
+    """
+
     print('before filtering, there are %d images...' % (len(roidb)))
     i = 0
     while i < len(roidb):
@@ -95,13 +120,16 @@ def combined_roidb(imdb_names, training=True, leftright=False):
     """
     Combine multiple roidbs
     :param imdb_names: string, 'voc_2007_trainval'
-    :return:
+    :return imdb: a pascal_voc() class instance
+            roidb: labels list [{}, {}, ...], each element is a dict that contains all labels for one image
+            ratio_list: 1D array [ratio1, ratio2,...], ratio order of all images from small to large
+            ratio_index: 1D array [4, 2, 1,...] shows the original index order before sorting
     """
 
     def get_training_roidb(imdb, leftright=False):
         """
         :param imdb: a pascal_voc() instance
-        :return: the .pkl cache file which contains all training annotations (parsed from xml)
+        :return: labels list [{}, {}, ...], each element is a dict that contains all labels for one image
         """
         if cfg.TRAIN.USE_FLIPPED:
             if leftright:
@@ -123,7 +151,7 @@ def combined_roidb(imdb_names, training=True, leftright=False):
     def get_roidb(imdb_name):
         """
         :param imdb_name: string, 'voc_2007_trainval'
-        :return: the .pkl cache file which contains all annotations (parsed from xml)
+        :return: labels list [{}, {}, ...], each element is a dict that contains all labels for one image
         """
         imdb = get_imdb(imdb_name)    # return a pascal_voc() class instance which contains all annotations
         print('Loaded dataset `{:s}` for training'.format(imdb.name))

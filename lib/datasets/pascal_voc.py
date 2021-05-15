@@ -46,7 +46,7 @@ class pascal_voc(imdb):
         self._image_index = self._load_image_set_index()    # img filenames without .jpg ['boardgame_v_-4m5TwI-698_frame000134', ...]
 
         # self._roidb_handler = self.selective_search_roidb    # Default to roidb handler
-        self._roidb_handler = self.gt_roidb    # .pkl cache file which contains all annotations (parsed from xml)
+        self._roidb_handler = self.gt_roidb    # labels list [{}, {}, ...], each element is a dict that contains all labels for one image
         self._salt = str(uuid.uuid4())
         self._comp_id = 'comp4'
 
@@ -113,7 +113,7 @@ class pascal_voc(imdb):
     def gt_roidb(self):
         """
         This function saves a dataset cache file to speed up future calls.
-        :return: .pkl cache file which contains all annotations (parsed from xml)
+        :return: labels list [{}, {}, ...], each element is a dict that contains all labels for one image
         """
 
         # absolute dir '/.../data/cache_handobj_100K/VOC_2007_trainval_gt_roidb.pkl'
@@ -123,10 +123,11 @@ class pascal_voc(imdb):
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 roidb = pickle.load(fid)
-            print('{} gt roidb loaded from {}'.format(self.name, cache_file))
+            print('{} gt annotations loaded from {}'.format(self.name, cache_file))
             return roidb
 
         # save the annotation (parsed from xml) into .pkl cache file
+        # [{}, {}, ...] each element is a dictionary that contains all labels for one image
         gt_roidb = [self._load_pascal_annotation(index) for index in self.image_index]
         with open(cache_file, 'wb') as fid:
             pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
@@ -147,7 +148,7 @@ class pascal_voc(imdb):
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 roidb = pickle.load(fid)
-            print('{} ss roidb loaded from {}'.format(self.name, cache_file))
+            print('{} ss annotations loaded from {}'.format(self.name, cache_file))
             return roidb
 
         if int(self._year) == 2007 or self._image_set != 'test':
