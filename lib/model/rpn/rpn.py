@@ -31,7 +31,7 @@ class _RPN(nn.Module):
         self.nc_bbox_out = len(self.anchor_scales) * len(self.anchor_ratios) * 4    # 36 = 4(coords) * 9(anchors)
         self.RPN_bbox_pred = nn.Conv2d(512, self.nc_bbox_out, 1, 1, 0)
 
-        # proposal finetune layer (generate roi bboxes, finetune them by predicted bbox delta)
+        # proposal finetune layer (generate roi bboxes, finetune bbox by predicted bbox delta)
         self.RPN_proposal = _ProposalLayer(self.feat_stride, self.anchor_scales, self.anchor_ratios)
 
         # proposal labels layer (produces anchor labels for classification and bbox regression)
@@ -75,8 +75,8 @@ class _RPN(nn.Module):
         # get rpn offsets to the pre-defined anchor boxes
         rpn_bbox_pred = self.RPN_bbox_pred(rpn_conv1)    # 4D tensor, (batch, 36, h/16, w/16)
 
-        # get the 300 proposals for each test image, finetune the proposlas by bbox delta
-        # rois has shape (batch, 300, 5) maximum 300 proposals, each coloumn is [batch_ind, x1, y1, x2, y2]
+        # get the 300 proposals for each test image, finetune the proposals by bbox delta
+        # rois has shape (batch, 300, 5) maximum 300 proposals, each column is [batch_ind, x1, y1, x2, y2]
         cfg_key = 'TRAIN' if self.training else 'TEST'
         rois = self.RPN_proposal((rpn_cls_prob.data, rpn_bbox_pred.data, im_info, cfg_key))
 

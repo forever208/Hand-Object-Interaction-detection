@@ -30,8 +30,8 @@ except NameError:
 
 class _AnchorTargetLayer(nn.Module):
     """
-        Assign anchors to ground-truth targets. Produces anchor classification
-        labels and bounding-box regression targets.
+    Assign anchors to ground-truth targets. Produces anchor classification
+    labels and bounding-box regression targets.
     """
     def __init__(self, feat_stride, scales, ratios):
         super(_AnchorTargetLayer, self).__init__()
