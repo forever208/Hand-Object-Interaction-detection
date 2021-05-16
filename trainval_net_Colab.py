@@ -266,11 +266,11 @@ if __name__ == '__main__':
         for step in range(iters_per_epoch):
             data = next(data_iter)
             with torch.no_grad():
-                im_data.resize_(data[0].size()).copy_(data[0])
-                im_info.resize_(data[1].size()).copy_(data[1])
-                gt_boxes.resize_(data[2].size()).copy_(data[2])
-                num_boxes.resize_(data[3].size()).copy_(data[3])
-                box_info.resize_(data[4].size()).copy_(data[4])
+                im_data.resize_(data[0].size()).copy_(data[0])    # 4D tensor (1, 3, h, w)
+                im_info.resize_(data[1].size()).copy_(data[1])    # 2D tensor [[h, w, scale_factor]]
+                gt_boxes.resize_(data[2].size()).copy_(data[2])    # 2D tensor [[x1, y1, x2, y2, cls], [], ...]
+                num_boxes.resize_(data[3].size()).copy_(data[3])    # 1D tensor [num_boxes]
+                box_info.resize_(data[4].size()).copy_(data[4])    # link gt label, 2D tensor [[contactstate, handside, magnitude, unitdx, unitdy], [], ...]]
 
             # get predictions
             fasterRCNN.zero_grad()

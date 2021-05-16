@@ -36,8 +36,8 @@ class _fasterRCNN(nn.Module):
         self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
 
         # ROIPooling or ROIAlign layer
-        self.RCNN_roi_pool = ROIPool((cfg.POOLING_SIZE, cfg.POOLING_SIZE), 1.0 / 16.0)
-        self.RCNN_roi_align = ROIAlign((cfg.POOLING_SIZE, cfg.POOLING_SIZE), 1.0 / 16.0, 0)
+        self.RCNN_roi_pool = ROIPool((cfg.POOLING_SIZE, cfg.POOLING_SIZE), 1.0/16.0)
+        self.RCNN_roi_align = ROIAlign((cfg.POOLING_SIZE, cfg.POOLING_SIZE), 1.0/16.0, 0)
 
         # new layer
         self.extension_layer = extension_layers.extension_layer()
@@ -48,8 +48,9 @@ class _fasterRCNN(nn.Module):
         get call when fasterRCNN(im_data, im_info, gt_boxes, num_boxes), after fasterRCNN.create_architecture
         @param im_data: 4D tensor, (batch, 3, h, w)
         @param im_info: 2D tensor, [[height, width, scale_factor (1.3)]]
-        @param gt_boxes: 3D tensor [[[conf, x, y, w, h]]]
+        @param gt_boxes: 3D tensor [[[conf, x1, y1, x2, y2]]]
         @param num_boxes: 1D tensor [num_boxes]
+        @param box_info: 3D tensor [[[0, 0, 0, 0, 0]]]
         @return:
         """
         batch_size = im_data.size(0)
@@ -62,7 +63,7 @@ class _fasterRCNN(nn.Module):
         base_feat = self.RCNN_base(im_data)    # RCNN_base() is defined in the child class (resnet)
 
         # 2. feature map --> RPN --> roi bboxes
-        # rois: 3D tensor (batch, 300, 5), each column is a bbox [batch_ind, x1, y1, x2, y2]
+        # rois: 3D tensor (batch, 5, 300), each column is a bbox [batch_ind, x1, y1, x2, y2]
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
 
         # if it is training phrase, then use ground truth bboxes for refining

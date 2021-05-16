@@ -30,10 +30,15 @@ except NameError:
 
 class _AnchorTargetLayer(nn.Module):
     """
-    Assign anchors to ground-truth targets. Produces anchor classification
-    labels and bounding-box regression targets.
+    Assign anchors to ground-truth targets.
+    Produces anchor classification labels and bounding-box regression targets.
     """
     def __init__(self, feat_stride, scales, ratios):
+        """
+        :param feat_stride: 16
+        :param scales: [8, 16, 32]
+        :param ratios: [0.5, 1, 2]
+        """
         super(_AnchorTargetLayer, self).__init__()
 
         self._feat_stride = feat_stride
@@ -45,14 +50,19 @@ class _AnchorTargetLayer(nn.Module):
         # allow boxes to sit over the edge by a small amount
         self._allowed_border = 0  # default is 0
 
-    def forward(self, input):
-        # Algorithm:
-        #
-        # for each (H, W) location i
-        #   generate 9 anchor boxes centered on cell i
-        #   apply predicted bbox deltas at cell i to each of the 9 anchors
-        # filter out-of-image anchors
 
+    def forward(self, input):
+        """
+        Algorithm:
+            for each (H, W) location i
+                generate 9 anchor boxes centered on cell i
+                apply predicted bbox deltas at cell i to each of the 9 anchors
+            filter out-of-image anchors
+
+        :param input: a tuple       (rpn_cls_score, gt_boxes,               im_info,                    num_boxes)
+                      specifically,((batch,18,H,W), [[[conf, x, y, w, h]]], [[h,w,scale_factor (1.3)]], 10)
+        :return:
+        """
         rpn_cls_score = input[0]
         gt_boxes = input[1]
         im_info = input[2]

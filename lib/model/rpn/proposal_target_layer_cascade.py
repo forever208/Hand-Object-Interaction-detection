@@ -20,28 +20,36 @@ import pdb
 
 class _ProposalTargetLayer(nn.Module):
     """
-    Assign object detection proposals to ground-truth targets. Produces proposal
-    classification labels and bounding-box regression targets.
+    Assign object detection proposals to ground-truth targets.
+    Produces proposal classification labels and bounding-box regression targets.
     """
 
     def __init__(self, nclasses):
         super(_ProposalTargetLayer, self).__init__()
         self._num_classes = nclasses
-        self.BBOX_NORMALIZE_MEANS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS)
-        self.BBOX_NORMALIZE_STDS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS)
-        self.BBOX_INSIDE_WEIGHTS = torch.FloatTensor(cfg.TRAIN.BBOX_INSIDE_WEIGHTS)
+        self.BBOX_NORMALIZE_MEANS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS)    # [0.0, 0.0, 0.0, 0.0]
+        self.BBOX_NORMALIZE_STDS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS)    # [0.1, 0.1, 0.2, 0.2]
+        self.BBOX_INSIDE_WEIGHTS = torch.FloatTensor(cfg.TRAIN.BBOX_INSIDE_WEIGHTS)    # [1.0, 1.0, 1.0, 1.0]
+
 
     def forward(self, all_rois, gt_boxes, num_boxes, box_info):
+        """
 
+        :param all_rois: 3D tensor (batch, 5, 300), each column is a proposal bbox [batch_ind, x1, y1, x2, y2]
+        :param gt_boxes: # 2D tensor [[x1, y1, x2, y2, cls], [], ...]
+        :param num_boxes: 1D tensor [num_boxes]
+        :param box_info: 2D tensor [[contactstate, handside, magnitude, unitdx, unitdy], [], []...]
+        :return:
+        """
         self.BBOX_NORMALIZE_MEANS = self.BBOX_NORMALIZE_MEANS.type_as(gt_boxes)
         self.BBOX_NORMALIZE_STDS = self.BBOX_NORMALIZE_STDS.type_as(gt_boxes)
         self.BBOX_INSIDE_WEIGHTS = self.BBOX_INSIDE_WEIGHTS.type_as(gt_boxes)
 
-        gt_boxes_append = gt_boxes.new(gt_boxes.size()).zero_()
-        gt_boxes_append[:, :, 1:5] = gt_boxes[:, :, :4]
+        gt_boxes_append = gt_boxes.new(gt_boxes.size()).zero_()    # [[[0, 0, 0, 0, 0]]]
+        gt_boxes_append[:, :, 1:5] = gt_boxes[:, :, :4]    # [[[0, x1, y1, x2, y2]]]
 
         # Include ground-truth boxes in the set of candidate rois
-        all_rois = torch.cat([all_rois, gt_boxes_append], 1)
+        all_rois = torch.cat([all_rois, gt_boxes_append], 1)    #
 
         num_images = 1
         rois_per_image = int(cfg.TRAIN.BATCH_SIZE / num_images)

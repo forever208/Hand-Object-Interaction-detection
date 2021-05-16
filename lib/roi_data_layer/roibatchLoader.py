@@ -63,8 +63,13 @@ class roibatchLoader(data.Dataset):
         Given an index of one image, take out corresponding dataset & labels
         subtract mean, rescale, crop, padding the image
         :param index: a number (23321 / 2134 / 455 / 1...)
-        :return:
+        :return data: image pixels, 4D tensor (1, 3, h, w)
+                im_info: 2D tensor [[h, w, scale_factor]]
+                gt_boxes: 2D tensor [[x1, y1, x2, y2, cls], [], ...]
+                num_boxes:
+                box_info: link gt label, 2D tensor [[contactstate, handside, magnitude, unitdx, unitdy], [], ...]]
         """
+
         def unison_shuffled_copies(a, b):
             assert len(a) == len(b)
             p = np.random.permutation(len(a))
@@ -83,7 +88,7 @@ class roibatchLoader(data.Dataset):
         #     'gt_boxes': 2D array [[x1, y1, x2, y2, cls], [], ...],
         #     'im_info':2D array [[h, w, scale_factor]],
         #     'img_id':xx,
-        #     'box_info': 2D array [[contactstate, handside, magnitude, unitdx, unitdy], [], ...]}
+        #     'box_info': 2D array [[contactstate, handside, magnitude, unitdx, unitdy], [], ...]]
         blobs = get_minibatch(minibatch_db, self._num_classes)
         data = torch.from_numpy(blobs['data'])    # 4D array (1, 3, h, w)
         im_info = torch.from_numpy(blobs['im_info'])    # 2D array [[h, w, scale_factor]]
@@ -223,17 +228,11 @@ class roibatchLoader(data.Dataset):
         else:
             data = data.permute(0, 3, 1, 2).contiguous().view(3, data_height, data_width)
             im_info = im_info.view(3)
-
             gt_boxes = torch.FloatTensor([1, 1, 1, 1, 1])
             box_info = torch.FloatTensor([1, 1, 1, 1, 1])
             num_boxes = 0
             return data, im_info, gt_boxes, num_boxes, box_info
 
-        # blob: image of the same size (after cropping or padding)
-        # im_info: [width, height, scale]
-        # gt_boxes: gt boxes
-        # num_boxes:
-        # box_info: auxiliary gt info
 
     def __len__(self):
         return len(self._roidb)

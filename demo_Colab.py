@@ -238,7 +238,7 @@ if __name__ == '__main__':
             with torch.no_grad():
                 im_data.resize_(im_data_pt.size()).copy_(im_data_pt)    # reshape to (1, 3, h, w) and fill in the img
                 im_info.resize_(im_info_pt.size()).copy_(im_info_pt)    # 2D tensor [[height, width, 1.3]]
-                gt_boxes.resize_(1, 1, 5).zero_()    # 3D tensor [[[conf, x, y, w, h]]]
+                gt_boxes.resize_(1, 1, 5).zero_()    # 3D tensor [[[x1, y1, x2, y2, cls]]], default as 0 for test
                 num_boxes.resize_(1).zero_()
                 box_info.resize_(1, 1, 5).zero_()
 
