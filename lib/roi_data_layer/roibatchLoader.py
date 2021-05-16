@@ -15,7 +15,7 @@ import numpy as np
 
 
 class roibatchLoader(data.Dataset):
-
+    """Inherit torch.utils.data.Dataset class"""
     def __init__(self, roidb, ratio_list, ratio_index, batch_size, num_classes, training=True, normalize=None):
         """
         :param roidb: labels list [{}, {}, ...], each element is a dict that contains all labels for one image

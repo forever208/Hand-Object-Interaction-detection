@@ -26,54 +26,49 @@ DEBUG = False
 class _ProposalLayer(nn.Module):
     """
     Outputs object detection proposals by applying estimated bounding-box
-    transformations to a set of regular boxes (called "anchors").
+    transformations to a set of anchors
     """
 
     def __init__(self, feat_stride, scales, ratios):
+        """
+        @param feat_stride: 16
+        @param scales: [8, 16, 32]
+        @param ratios: [0.5, 1, 2]
+        """
         super(_ProposalLayer, self).__init__()
 
         self._feat_stride = feat_stride
-        self._anchors = torch.from_numpy(generate_anchors(scales=np.array(scales),
-            ratios=np.array(ratios))).float()
+        self._anchors = torch.from_numpy(generate_anchors(scales=np.array(scales), ratios=np.array(ratios))).float()    # (9, 4) tensor
         self._num_anchors = self._anchors.size(0)
 
-        # rois blob: holds R regions of interest, each is a 5-tuple
-        # (n, x1, y1, x2, y2) specifying an image batch index n and a
-        # rectangle (x1, y1, x2, y2)
-        # top[0].reshape(1, 5)
-        #
-        # # scores blob: holds scores for R regions of interest
-        # if len(top) > 1:
-        #     top[1].reshape(1, 1, 1, 1)
 
     def forward(self, input):
+        """
+        for each (H, W) location i
+            generate 9 anchor boxes centered on cell i
+            finetune the for the 9 anchors at cell i bbox by predicted bbox deltas
+        clip predicted boxes to image
+        remove predicted boxes with either height or width < threshold
+        sort all (proposal, score) pairs by score from highest to lowest
+        take top pre_nms_topN proposals before NMS
+        apply NMS with threshold 0.7 to remaining proposals
+        take after_nms_topN proposals after NMS
+        return the top proposals (-> RoIs top, scores top)
 
-        # Algorithm:
-        #
-        # for each (H, W) location i
-        #   generate A anchor boxes centered on cell i
-        #   apply predicted bbox deltas at cell i to each of the A anchors
-        # clip predicted boxes to image
-        # remove predicted boxes with either height or width < threshold
-        # sort all (proposal, score) pairs by score from highest to lowest
-        # take top pre_nms_topN proposals before NMS
-        # apply NMS with threshold 0.7 to remaining proposals
-        # take after_nms_topN proposals after NMS
-        # return the top proposals (-> RoIs top, scores top)
+        @param input: a tuple (rpn_cls_prob,    rpn_bbox_pred,   im_info,  cfg_key)
+                              ((batch,18,h,w), (batch,36,h,w), (batch, 2), 'train/test')
+        @return: rois (batch, 300, 5), maximum 300 proposals, each row is [batch_ind, x1, y1, x2, y2]
+        """
 
-
-        # the first set of _num_anchors channels are bg probs
-        # the second set are the fg probs
-        scores = input[0][:, self._num_anchors:, :, :]
+        scores = input[0][:, self._num_anchors:, :, :]    # take the positive (object) scores
         bbox_deltas = input[1]
         im_info = input[2]
         cfg_key = input[3]
 
-        pre_nms_topN  = cfg[cfg_key].RPN_PRE_NMS_TOP_N
-        post_nms_topN = cfg[cfg_key].RPN_POST_NMS_TOP_N
-        nms_thresh    = cfg[cfg_key].RPN_NMS_THRESH
-        min_size      = cfg[cfg_key].RPN_MIN_SIZE
-
+        pre_nms_topN  = cfg[cfg_key].RPN_PRE_NMS_TOP_N    # 6000 for train
+        post_nms_topN = cfg[cfg_key].RPN_POST_NMS_TOP_N    # 300 for test
+        nms_thresh    = cfg[cfg_key].RPN_NMS_THRESH    # 0.7
+        min_size      = cfg[cfg_key].RPN_MIN_SIZE    # 16
         batch_size = bbox_deltas.size(0)
 
         feat_height, feat_width = scores.size(2), scores.size(3)
@@ -82,19 +77,16 @@ class _ProposalLayer(nn.Module):
         shift_x, shift_y = np.meshgrid(shift_x, shift_y)
         shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
                                   shift_x.ravel(), shift_y.ravel())).transpose())
-        shifts = shifts.contiguous().type_as(scores).float()
+        shifts = shifts.contiguous().type_as(scores).float()    # (feat_h*feat_w, 4)
 
-        A = self._num_anchors
-        K = shifts.size(0)
+        A = self._num_anchors    # 9
+        K = shifts.size(0)    # feat_height * feat_width
 
         self._anchors = self._anchors.type_as(scores)
-        # anchors = self._anchors.view(1, A, 4) + shifts.view(1, K, 4).permute(1, 0, 2).contiguous()
-        anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)
-        anchors = anchors.view(1, K * A, 4).expand(batch_size, K * A, 4)
+        anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)    # (h*w, 9, 4)
+        anchors = anchors.view(1, K * A, 4).expand(batch_size, K * A, 4)    # (batch, h*w*9, 4)
 
-        # Transpose and reshape predicted bbox transformations to get them
-        # into the same order as the anchors:
-
+        # make cls_score the same order with the anchors:
         bbox_deltas = bbox_deltas.permute(0, 2, 3, 1).contiguous()
         bbox_deltas = bbox_deltas.view(batch_size, -1, 4)
 
@@ -102,28 +94,16 @@ class _ProposalLayer(nn.Module):
         scores = scores.permute(0, 2, 3, 1).contiguous()
         scores = scores.view(batch_size, -1)
 
-        # Convert anchors into proposals via bbox transformations
+        # Convert anchors into proposal bboxes
         proposals = bbox_transform_inv(anchors, bbox_deltas, batch_size)
 
         # 2. clip predicted boxes to image
         proposals = clip_boxes(proposals, im_info, batch_size)
-        # proposals = clip_boxes_batch(proposals, im_info, batch_size)
-
-        # assign the score to 0 if it's non keep.
-        # keep = self._filter_boxes(proposals, min_size * im_info[:, 2])
-
-        # trim keep index to make it euqal over batch
-        # keep_idx = torch.cat(tuple(keep_idx), 0)
-
-        # scores_keep = scores.view(-1)[keep_idx].view(batch_size, trim_size)
-        # proposals_keep = proposals.view(-1, 4)[keep_idx, :].contiguous().view(batch_size, trim_size, 4)
-
-        # _, order = torch.sort(scores_keep, 1, True)
-
         scores_keep = scores
         proposals_keep = proposals
         _, order = torch.sort(scores_keep, 1, True)
 
+        # initialise the proposals by creating a zero tensor
         output = scores.new(batch_size, post_nms_topN, 5).zero_()
         for i in range(batch_size):
             # # 3. remove predicted boxes with either height or width < threshold
@@ -157,15 +137,18 @@ class _ProposalLayer(nn.Module):
             output[i,:,0] = i
             output[i,:num_proposal,1:] = proposals_single
 
-        return output
+        return output    # (batch, 300, 5) maximum 300 proposals, each row is [batch_ind, x1, y1, x2, y2]
+
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
         pass
 
+
     def reshape(self, bottom, top):
         """Reshaping happens during the call to forward."""
         pass
+
 
     def _filter_boxes(self, boxes, min_size):
         """Remove all boxes with any side smaller than min_size."""
