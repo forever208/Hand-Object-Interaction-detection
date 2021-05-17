@@ -183,15 +183,15 @@ def bbox_overlaps(anchors, gt_boxes):
 
 def bbox_overlaps_batch(anchors, gt_boxes):
     """
-    anchors: (N, 4) ndarray of float
-    gt_boxes: (b, K, 5) ndarray of float
-
-    overlaps: (N, K) ndarray of overlap between boxes and query_boxes
+    overlaps:
+    note: num_boxes default as 20
+    :param anchors: 3D tensor (batch, 2000+num_boxes, 5)
+    :param gt_boxes: 3D tensor (batch, num_boxes, 5), each row is [cls, x1, y1, x2, y2]
+    :return: 3D tensor (batch, 2000+20, 20) of overlap ratio between gt boxes and proposal anchor
     """
     batch_size = gt_boxes.size(0)
 
     if anchors.dim() == 2:
-
         N = anchors.size(0)
         K = gt_boxes.size(1)
 
@@ -226,35 +226,39 @@ def bbox_overlaps_batch(anchors, gt_boxes):
         overlaps.masked_fill_(gt_area_zero.view(batch_size, 1, K).expand(batch_size, N, K), 0)
         overlaps.masked_fill_(anchors_area_zero.view(batch_size, N, 1).expand(batch_size, N, K), -1)
 
+    # actually execute code here
     elif anchors.dim() == 3:
-        N = anchors.size(1)
-        K = gt_boxes.size(1)
+        N = anchors.size(1)    # 2000+20
+        K = gt_boxes.size(1)    # 20
 
         if anchors.size(2) == 4:
             anchors = anchors[:, :, :4].contiguous()
         else:
-            anchors = anchors[:, :, 1:5].contiguous()
+            anchors = anchors[:, :, 1:5].contiguous()    # (batch, 2000+20, 4), each row is [x1, y1, x2, y2]
 
-        gt_boxes = gt_boxes[:, :, :4].contiguous()
+        # compute the width, height, area for anchors and gt bboxes
+        gt_boxes = gt_boxes[:, :, :4].contiguous()    # (batch, 20, 4), each row is [x1, y1, x2, y2]
+        gt_boxes_x = (gt_boxes[:, :, 2] - gt_boxes[:, :, 0] + 1)    # (batch, 20), each row is bbox width (x2-x1)+1
+        gt_boxes_y = (gt_boxes[:, :, 3] - gt_boxes[:, :, 1] + 1)    # (batch, 20), each row is bbox height (y2-y1)+1
+        gt_boxes_area = (gt_boxes_x * gt_boxes_y).view(batch_size, 1, K) # (batch, 1, 20), each column is bbox area
 
-        gt_boxes_x = (gt_boxes[:, :, 2] - gt_boxes[:, :, 0] + 1)
-        gt_boxes_y = (gt_boxes[:, :, 3] - gt_boxes[:, :, 1] + 1)
-        gt_boxes_area = (gt_boxes_x * gt_boxes_y).view(batch_size, 1, K)
+        anchors_boxes_x = (anchors[:, :, 2] - anchors[:, :, 0] + 1)    # (batch, 2000+20), each row's element is anchor width
+        anchors_boxes_y = (anchors[:, :, 3] - anchors[:, :, 1] + 1)    # (batch, 2000+20), each row is anchor height
+        anchors_area = (anchors_boxes_x * anchors_boxes_y).view(batch_size, N, 1)    # (batch, 2000+20), each row's element is bbox area
 
-        anchors_boxes_x = (anchors[:, :, 2] - anchors[:, :, 0] + 1)
-        anchors_boxes_y = (anchors[:, :, 3] - anchors[:, :, 1] + 1)
-        anchors_area = (anchors_boxes_x * anchors_boxes_y).view(batch_size, N, 1)
-
-        gt_area_zero = (gt_boxes_x == 1) & (gt_boxes_y == 1)
+        gt_area_zero = (gt_boxes_x == 1) & (gt_boxes_y == 1)    # (batch, 20, 1), a mask tensor, each row is False or True
         anchors_area_zero = (anchors_boxes_x == 1) & (anchors_boxes_y == 1)
 
-        boxes = anchors.view(batch_size, N, 1, 4).expand(batch_size, N, K, 4)
-        query_boxes = gt_boxes.view(batch_size, 1, K, 4).expand(batch_size, N, K, 4)
+        # expand both anchors and gt bboxes to the same size
+        boxes = anchors.view(batch_size, N, 1, 4).expand(batch_size, N, K, 4)    # (batch, 2000+20, 20, 4)
+        query_boxes = gt_boxes.view(batch_size, 1, K, 4).expand(batch_size, N, K, 4)    # (batch, 2000+20, 20, 4)
 
+        # given two boxes, compute the width of overlapped area, (x2_min - x1_max) + 1
         iw = (torch.min(boxes[:, :, :, 2], query_boxes[:, :, :, 2]) -
               torch.max(boxes[:, :, :, 0], query_boxes[:, :, :, 0]) + 1)
-        iw[iw < 0] = 0
+        iw[iw < 0] = 0    # (batch, 2000+20, 20)
 
+        # given two boxes, compute the height of overlapped area, (y2_min - y1_max) + 1
         ih = (torch.min(boxes[:, :, :, 3], query_boxes[:, :, :, 3]) -
               torch.max(boxes[:, :, :, 1], query_boxes[:, :, :, 1]) + 1)
         ih[ih < 0] = 0

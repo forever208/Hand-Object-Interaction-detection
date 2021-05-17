@@ -29,10 +29,10 @@ class _fasterRCNN(nn.Module):
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
 
-        # RPN layer
+        # RPN layer (also compute the cls loss and bbox loss for RPN layer)
         self.RCNN_rpn = _RPN(self.dout_base_model)
 
-        # RPN gt labels layer (produces gt labels for proposal classification and bbox regression)
+        # RCNN gt labels layer (produces gt labels for final cls and bbox regression)
         self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
 
         # ROIPooling or ROIAlign layer
@@ -48,9 +48,9 @@ class _fasterRCNN(nn.Module):
         get call when fasterRCNN(im_data, im_info, gt_boxes, num_boxes), after fasterRCNN.create_architecture
         @param im_data: 4D tensor, (batch, 3, h, w)
         @param im_info: 2D tensor, [[height, width, scale_factor (1.3)]]
-        @param gt_boxes: 3D tensor [[[conf, x1, y1, x2, y2]]]
+        @param gt_boxes: 3D tensor (batch, num_boxes, 5), each row is [cls, x1, y1, x2, y2]
         @param num_boxes: 1D tensor [num_boxes]
-        @param box_info: 3D tensor [[[0, 0, 0, 0, 0]]]
+        @param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
         @return:
         """
         batch_size = im_data.size(0)
@@ -62,11 +62,11 @@ class _fasterRCNN(nn.Module):
         # 1. img --> backbone (resnet) --> feature maps
         base_feat = self.RCNN_base(im_data)    # RCNN_base() is defined in the child class (resnet)
 
-        # 2. feature map --> RPN --> roi bboxes
-        # rois: 3D tensor (batch, 5, 300), each column is a bbox [batch_ind, x1, y1, x2, y2]
+        # 2. feature map --> RPN --> roi bboxes (also compute the loss of RPN proposals)
+        # rois: 3D tensor (batch, 2000, 5), each row is a bbox [batch_ind, x1, y1, x2, y2]
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
 
-        # if it is training phrase, then use ground truth bboxes for refining
+        # Generate the gt labels for final RCNN output (cls and bbox regression) when training
         if self.training:    # self.training is a class attribute in nn.module
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes, box_info)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws, box_info = roi_data
@@ -97,7 +97,8 @@ class _fasterRCNN(nn.Module):
         else:
             raise Exception("rpn pooling mode is not defined")
 
-        # 4. pooled features --> get bbox predictions
+        # 4.        pooled features --> get bbox predictions
+        # 4. padded pooled features --> get bbox predictions
         pooled_feat = self._head_to_tail(pooled_feat)    # _head_to_tail() is defined in the child class (resnet)
         pooled_feat_padded = self._head_to_tail(pooled_feat_padded)
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)    # RCNN_bbox_pred() is defined in the child class (resnet)
@@ -116,7 +117,7 @@ class _fasterRCNN(nn.Module):
         # result = self.lineartrial(object_feat)  
         # extension layer
 
-        # loss function
+        # 5. loss function
         RCNN_loss_cls = 0
         RCNN_loss_bbox = 0
         loss_list = []
@@ -138,6 +139,12 @@ class _fasterRCNN(nn.Module):
 
 
     def enlarge_bbox(self, im_info, rois, ratio=0.5):
+        """
+
+        :param im_info: 2D tensor, (batch, 3), each row is [height, width, scale_factor (1.3)]
+        :param rois:
+        :return:
+        """
         rois_width, rois_height = (rois[:, :, 3] - rois[:, :, 1]), (rois[:, :, 4] - rois[:, :, 2])
         rois_padded = rois.clone()
         rois_padded[:, :, 1] = rois_padded[:, :, 1] - ratio * rois_width
@@ -147,6 +154,8 @@ class _fasterRCNN(nn.Module):
 
         rois_padded[:, :, 3] = rois_padded[:, :, 3] + ratio * rois_width
         rois_padded[:, :, 4] = rois_padded[:, :, 4] + ratio * rois_height
+
+        """if batch>1, error: yhe size of tensor a (128) must match the size of tensor b (2) at non-singleton dimension 1"""
         rois_padded[:, :, 3][rois_padded[:, :, 3] > im_info[:, 0]] = im_info[:, 0]
         rois_padded[:, :, 4][rois_padded[:, :, 4] > im_info[:, 1]] = im_info[:, 1]
         return rois_padded

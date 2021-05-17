@@ -54,7 +54,7 @@ class _ProposalLayer(nn.Module):
 
         @param input: a tuple (rpn_cls_prob,    rpn_bbox_pred,   im_info,  cfg_key) whose shape is
                               ((batch,18,H,W), (batch,36,H,W),  (batch,2), 'train/test')
-        @return: rois (batch, 300, 5), maximum 300 proposals, each row is [batch_ind, x1, y1, x2, y2]
+        @return: rois (batch, 2000, 5), 2000 training proposals, each row is [batch_ind, x1, y1, x2, y2]
         """
 
         # take the positive (object) scores
@@ -126,7 +126,7 @@ class _ProposalLayer(nn.Module):
             keep_idx_i = nms(proposals_single, scores_single.squeeze(1), nms_thresh)
             keep_idx_i = keep_idx_i.long().view(-1)
 
-            # 7. take after_nms_topN proposals after NMS (e.g. 300)
+            # 7. take after_nms_topN proposals after NMS (e.g. 300 for test, 2000 for train)
             if post_nms_topN > 0:
                 keep_idx_i = keep_idx_i[:post_nms_topN]
 
@@ -139,7 +139,7 @@ class _ProposalLayer(nn.Module):
             output[i,:,0] = i
             output[i,:num_proposal,1:] = proposals_single
 
-        return output    # (batch, 300, 5) maximum 300 proposals, each row is [batch_ind, x1, y1, x2, y2]
+        return output    # (batch, 2000, 5) 2000 training proposals, each row is [batch_ind, x1, y1, x2, y2]
 
 
     def backward(self, top, propagate_down, bottom):

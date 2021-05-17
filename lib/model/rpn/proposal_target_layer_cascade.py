@@ -26,7 +26,7 @@ class _ProposalTargetLayer(nn.Module):
 
     def __init__(self, nclasses):
         super(_ProposalTargetLayer, self).__init__()
-        self._num_classes = nclasses
+        self._num_classes = nclasses    # 3
         self.BBOX_NORMALIZE_MEANS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS)    # [0.0, 0.0, 0.0, 0.0]
         self.BBOX_NORMALIZE_STDS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS)    # [0.1, 0.1, 0.2, 0.2]
         self.BBOX_INSIDE_WEIGHTS = torch.FloatTensor(cfg.TRAIN.BBOX_INSIDE_WEIGHTS)    # [1.0, 1.0, 1.0, 1.0]
@@ -35,31 +35,31 @@ class _ProposalTargetLayer(nn.Module):
     def forward(self, all_rois, gt_boxes, num_boxes, box_info):
         """
 
-        :param all_rois: 3D tensor (batch, 5, 300), each column is a proposal bbox [batch_ind, x1, y1, x2, y2]
-        :param gt_boxes: # 2D tensor [[x1, y1, x2, y2, cls], [], ...]
-        :param num_boxes: 1D tensor [num_boxes]
-        :param box_info: 2D tensor [[contactstate, handside, magnitude, unitdx, unitdy], [], []...]
+        :param all_rois: 3D tensor (batch, 2000, 5), each row is a proposal bbox [batch_ind, x1, y1, x2, y2]
+        :param gt_boxes: 3D tensor (batch, num_boxes, 5), each row is [cls, x1, y1, x2, y2]
+        :param num_boxes: 2D tensor (batch, 1), default as 20
+        :param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
         :return:
         """
         self.BBOX_NORMALIZE_MEANS = self.BBOX_NORMALIZE_MEANS.type_as(gt_boxes)
         self.BBOX_NORMALIZE_STDS = self.BBOX_NORMALIZE_STDS.type_as(gt_boxes)
         self.BBOX_INSIDE_WEIGHTS = self.BBOX_INSIDE_WEIGHTS.type_as(gt_boxes)
 
-        gt_boxes_append = gt_boxes.new(gt_boxes.size()).zero_()    # [[[0, 0, 0, 0, 0]]]
-        gt_boxes_append[:, :, 1:5] = gt_boxes[:, :, :4]    # [[[0, x1, y1, x2, y2]]]
+        gt_boxes_append = gt_boxes.new(gt_boxes.size()).zero_()
+        gt_boxes_append[:, :, 1:5] = gt_boxes[:, :, :4]    # (batch, num_boxes, 5), each row is [0, x1, y1, x2, y2]
 
         # Include ground-truth boxes in the set of candidate rois
-        all_rois = torch.cat([all_rois, gt_boxes_append], 1)    #
+        all_rois = torch.cat([all_rois, gt_boxes_append], 1)    # (batch, 300+num_boxes, 5)
 
-        num_images = 1
-        rois_per_image = int(cfg.TRAIN.BATCH_SIZE / num_images)
-        fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))
+        # only pick up 128 roi proposals to train
+        rois_per_image = int(cfg.TRAIN.BATCH_SIZE)    # 128
+        fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))    # 128/4 = 32
         fg_rois_per_image = 1 if fg_rois_per_image == 0 else fg_rois_per_image
 
-        labels, rois, bbox_targets, bbox_inside_weights, box_info = self._sample_rois_pytorch(
-            all_rois, gt_boxes, fg_rois_per_image,
-            rois_per_image, self._num_classes, box_info)
-
+        # Generate a random sample of RoIs comprising foreground and background examples.
+        labels, rois, \
+        bbox_targets, bbox_inside_weights, \
+        box_info = self._sample_rois_pytorch(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, self._num_classes, box_info)
         bbox_outside_weights = (bbox_inside_weights > 0).float()
 
         return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, box_info
@@ -104,6 +104,7 @@ class _ProposalTargetLayer(nn.Module):
 
         return bbox_targets, bbox_inside_weights
 
+
     def _compute_targets_pytorch(self, ex_rois, gt_rois):
         """Compute bounding-box regression targets for an image."""
 
@@ -125,34 +126,51 @@ class _ProposalTargetLayer(nn.Module):
 
 
     def _sample_rois_pytorch(self, all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_classes, box_info):
-        """Generate a random sample of RoIs comprising foreground and background
-        examples.
         """
-        # overlaps: (rois x gt_boxes)
+        Generate a random sample of RoIs comprising foreground and background examples.
+        :param all_rois: 2000 proposal boxes + gt boxes, 3D tensor (batch, 2000+num_boxes, 5)
+        :param gt_boxes: 3D tensor (batch, num_boxes, 5), each row is [x1, y1, x2, y2, cls]
+        :param fg_rois_per_image: 32
+        :param rois_per_image: 128
+        :param num_classes: 3
+        :param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
+        :return:
+        """
 
+        # 3D tensor (batch, 2000+20, 20) of overlap ratio between gt boxes and proposal anchor
         overlaps = bbox_overlaps_batch(all_rois, gt_boxes)
 
+        # max_overlaps: (batch, 2000+20), the max overlap ratio
+        # gt_assignment: (batch, 2000+20), the index of the max overlap ratio
         max_overlaps, gt_assignment = torch.max(overlaps, 2)
 
         batch_size = overlaps.size(0)
         num_proposal = overlaps.size(1)
         num_boxes_per_img = overlaps.size(2)
 
-        offset = torch.arange(0, batch_size) * gt_boxes.size(1)
+        offset = torch.arange(0, batch_size) * gt_boxes.size(1)    # [0, 20, 40, 60] if batch=4
+
+        # offset: (batch, 2000+20), the index of the max overlap ratio
         offset = offset.view(-1, 1).type_as(gt_assignment) + gt_assignment
+
         # changed indexing way for pytorch 1.0
-        labels = gt_boxes[:, :, 4].contiguous().view(-1)[(offset.view(-1),)].view(batch_size, -1)
+        # choose class labels for 2020 proposal bboxes
+        labels = gt_boxes[:, :, 4].contiguous().view(-1)[(offset.view(-1),)].view(batch_size, -1)    # (batch, 2000+20)
         list_box = []
         for i in range(batch_size):
             """error when batch > 1, IndexError: index 20 is out of bounds for dimension 0 with size 20"""
+            """this code can solve the above problem, but there is still other error regarding the box_info when batch>1"""
+            # link_label_i = box_info[i].expand(i+1, box_info.size(1), box_info.size(2)).reshape(-1, box_info.size(2))
+            # list_box.append(link_label_i[(offset[i, :].view(-1),)])
             list_box.append(box_info[i][(offset[i, :].view(-1),)])
         boxes_info = torch.stack(list_box)
+
         labels_batch = labels.new(batch_size, rois_per_image).zero_()
         info_batch = boxes_info.new(batch_size, rois_per_image, 5).zero_()
         rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
         gt_rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
-        # Guard against the case when an image has fewer than max_fg_rois_per_image
-        # foreground RoIs
+
+        # Guard against the case when an image has fewer than max_fg_rois_per_image foreground RoIs
         for i in range(batch_size):
             fg_inds = torch.nonzero(max_overlaps[i] >= cfg.TRAIN.FG_THRESH).view(-1)
             fg_num_rois = fg_inds.numel()

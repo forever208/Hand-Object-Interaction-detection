@@ -58,7 +58,7 @@ class _RPN(nn.Module):
         @param im_info: 2D tensor, [[height, width, scale_factor (1.3)]]
         @param gt_boxes: 3D tensor [[[conf, x, y, w, h]]]
         @param num_boxes: 1D tensor [num_boxes]
-        @return:
+        @return: rois: 3D tensor (batch, 2000, 5), 2000 training proposals, each column is [batch_ind, x1, y1, x2, y2]
         """
         batch_size = base_feat.size(0)
 
@@ -74,8 +74,7 @@ class _RPN(nn.Module):
         # 2. get rpn offsets to the pre-defined anchor boxes
         rpn_bbox_pred = self.RPN_bbox_pred(rpn_conv1)    # 4D tensor, (batch, 36, h/16, w/16)
 
-        # 3. get the 300 proposals for each test image, finetune the proposals by bbox delta
-        # rois has shape (batch, 300, 5) maximum 300 proposals, each column is [batch_ind, x1, y1, x2, y2]
+        # 3. get the 300 proposals for each test image (2000 for training), finetune the proposals by bbox delta
         cfg_key = 'TRAIN' if self.training else 'TEST'
         rois = self.RPN_proposal((rpn_cls_prob.data, rpn_bbox_pred.data, im_info, cfg_key))
 
