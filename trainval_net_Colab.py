@@ -346,15 +346,23 @@ if __name__ == '__main__':
 
         # save model after each epoch
         save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
-        save_checkpoint({
+        state = {
             'session': args.session,
             'epoch': epoch + 1,
             'model': fasterRCNN.module.state_dict() if args.mGPUs else fasterRCNN.state_dict(),
             'optimizer': optimizer.state_dict(),
             'pooling_mode': cfg.POOLING_MODE,
             'class_agnostic': args.class_agnostic,
-        }, save_name)
+        }
+        torch.save(state, save_name)
         print('save model: {}'.format(save_name))
+
+        # save model to Google drive
+        Google_drive_path = '/content/drive/MyDrive/HOI_detection'
+        if os.path.exists(Google_drive_path):
+            save_name_gdrive = os.path.join(Google_drive_path, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
+            torch.save(state, save_name_gdrive)
+            print('save model to Google drive: {}'.format(save_name_gdrive))
 
     if args.use_tfboard:
         logger.close()
