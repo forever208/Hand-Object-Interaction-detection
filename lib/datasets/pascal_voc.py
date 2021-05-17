@@ -39,7 +39,6 @@ class pascal_voc(imdb):
         self._image_set = image_set
         self._devkit_path = self._get_default_path() if devkit_path is None else devkit_path    # 'data/VOCdevkit2007_handobj_100K'
         self._data_path = os.path.join(self._devkit_path, 'VOC'+self._year)    # 'data/VOCdevkit2007_handobj_100K/VOC2007'
-        self.num_load_imgs = 19695    # 19695 training dataset, 1666 test dataset
 
         self._classes = ('__background__', 'targetobject', 'hand')    # rewrite this attribute of parent class
         self._class_to_ind = dict(zip(self.classes, range(self.num_classes)))    # {'__background__':0, 'targetobject':1, 'hand':2}
@@ -100,7 +99,13 @@ class pascal_voc(imdb):
         with open(image_set_file) as f:
             image_index = [x.strip() for x in f.readlines()]
 
-        image_index = image_index[:self.num_load_imgs]
+        # 19695 training dataset, 1666 test dataset
+        if len(image_index) > 50000:
+            num_load_imgs = 19695
+        else:
+            num_load_imgs = 1666
+
+        image_index = image_index[:num_load_imgs]
         return image_index
 
 
