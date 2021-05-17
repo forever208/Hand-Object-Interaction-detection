@@ -109,10 +109,11 @@ def parse_args():
 
     # save model and log
     parser.add_argument('--model_name',
-                        help='directory to save models', required=True, type=str)
+                        help='directory to save models',
+                        default='handobj_100K', type=str)
     parser.add_argument('--log_name',
                         help='directory to save logs',
-                        type=str)
+                        default='handobj_100K', type=str)
 
     args = parser.parse_args()
     return args

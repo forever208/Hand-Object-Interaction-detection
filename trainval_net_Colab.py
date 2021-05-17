@@ -30,7 +30,7 @@ def parse_args():
                         help='training dataset',
                         default='pascal_voc', type=str)
     parser.add_argument('--net', dest='net',
-                        help='res50, res101',
+                        help='vgg16, res50, res101, res152',
                         default='res101', type=str)
     parser.add_argument('--start_epoch', dest='start_epoch',
                         help='starting epoch',
@@ -50,7 +50,7 @@ def parse_args():
                         default="models", type=str)
     parser.add_argument('--nw', dest='num_workers',
                         help='number of worker to load data',
-                        default=0, type=int)
+                        default=2, type=int)
     parser.add_argument('--cuda', dest='cuda',
                         help='whether use CUDA',
                         action='store_true')
@@ -107,9 +107,10 @@ def parse_args():
     # save model and log
     parser.add_argument('--model_name',
                         help='directory to save trained models',
-                        required=True, type=str)
+                        default='handobj_100K', type=str)
     parser.add_argument('--log_name',
-                        help='directory to save training logs', type=str)
+                        help='directory to save training logs',
+                        default='handobj_100K', type=str)
 
     args = parser.parse_args()
     return args
@@ -166,7 +167,7 @@ if __name__ == '__main__':
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     cfg.USE_GPU_NMS = True if torch.cuda.is_available() else False
 
-    # Load training data from xml files
+    # Load training data from local xml files
     cfg.TRAIN.USE_FLIPPED = False
     imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdb_name)
     train_size = len(roidb)

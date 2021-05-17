@@ -66,7 +66,7 @@ class _fasterRCNN(nn.Module):
         # rois: 3D tensor (batch, 2000, 5), each row is a bbox [batch_ind, x1, y1, x2, y2]
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
 
-        # Generate the gt labels for final RCNN output (cls and bbox regression) when training
+        # Select best 128 proposals, generate the 128 gt labels for final RCNN output (cls and bbox regression) when training
         if self.training:    # self.training is a class attribute in nn.module
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes, box_info)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws, box_info = roi_data
@@ -87,6 +87,7 @@ class _fasterRCNN(nn.Module):
         # 3.        rois --> roi pooling --> pooled features 4D tensor (num_proposals, 1024, 7, 7)
         # 3  padded rois --> roi pooling -->
         rois = Variable(rois)
+
         rois_padded = Variable(self.enlarge_bbox(im_info, rois, 0.3))
         if cfg.POOLING_MODE == 'align':
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
@@ -98,7 +99,7 @@ class _fasterRCNN(nn.Module):
             raise Exception("rpn pooling mode is not defined")
 
         # 4.        pooled features --> get bbox predictions
-        # 4. padded pooled features --> get bbox predictions
+        # 4. padded pooled features --> get
         pooled_feat = self._head_to_tail(pooled_feat)    # _head_to_tail() is defined in the child class (resnet)
         pooled_feat_padded = self._head_to_tail(pooled_feat_padded)
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)    # RCNN_bbox_pred() is defined in the child class (resnet)
@@ -142,7 +143,7 @@ class _fasterRCNN(nn.Module):
         """
 
         :param im_info: 2D tensor, (batch, 3), each row is [height, width, scale_factor (1.3)]
-        :param rois:
+        :param rois: 3D tensor (batch, 128, 5), each row is a selected best proposal [batch_ind, x1, y1, x2, y2]
         :return:
         """
         rois_width, rois_height = (rois[:, :, 3] - rois[:, :, 1]), (rois[:, :, 4] - rois[:, :, 2])

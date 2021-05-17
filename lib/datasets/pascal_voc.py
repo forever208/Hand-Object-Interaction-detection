@@ -39,6 +39,7 @@ class pascal_voc(imdb):
         self._image_set = image_set
         self._devkit_path = self._get_default_path() if devkit_path is None else devkit_path    # 'data/VOCdevkit2007_handobj_100K'
         self._data_path = os.path.join(self._devkit_path, 'VOC'+self._year)    # 'data/VOCdevkit2007_handobj_100K/VOC2007'
+        self.num_load_imgs = 19695    # 19695 training dataset, 1666 test dataset
 
         self._classes = ('__background__', 'targetobject', 'hand')    # rewrite this attribute of parent class
         self._class_to_ind = dict(zip(self.classes, range(self.num_classes)))    # {'__background__':0, 'targetobject':1, 'hand':2}
@@ -92,12 +93,14 @@ class pascal_voc(imdb):
         :return: a list of all image filenames (without postfix .jpg), ['boardgame_v_-4m5TwI-698_frame000134', ...]
         """
 
-        # "data/VOCdevkit2007_handobj_100K/VOC2007/ImageSets/Main/val.txt"
+        # image_set_file: "data/VOCdevkit2007_handobj_100K/VOC2007/ImageSets/Main/val.txt"
         image_set_file = os.path.join(self._data_path, 'ImageSets', 'Main', self._image_set+'.txt')
         assert os.path.exists(image_set_file), 'Path does not exist: {}'.format(image_set_file)
 
         with open(image_set_file) as f:
             image_index = [x.strip() for x in f.readlines()]
+
+        image_index = image_index[:self.num_load_imgs]
         return image_index
 
 
@@ -116,7 +119,7 @@ class pascal_voc(imdb):
         :return: labels list [{}, {}, ...], each element is a dict that contains all labels for one image
         """
 
-        # absolute dir '/.../data/cache_handobj_100K/VOC_2007_trainval_gt_roidb.pkl'
+        # cache_file: absolute dir '/.../data/cache_handobj_100K/VOC_2007_trainval_gt_roidb.pkl'
         cache_file = os.path.join(self.cache_path, self.name+'_gt_roidb.pkl')
 
         # load sequenced data from .pkl cache file
@@ -218,7 +221,7 @@ class pascal_voc(imdb):
         :return: a dictionary of gt labels
         """
 
-        # 'data/VOCdevkit2007_handobj_100K/VOC2007/Annotations/boardgame_v_-4m5TwI-698_frame000134.xml'
+        # filename: 'data/VOCdevkit2007_handobj_100K/VOC2007/Annotations/boardgame_v_-4m5TwI-698_frame000134.xml'
         filename = os.path.join(self._data_path, 'Annotations', index + '.xml')
         tree = ET.parse(filename)
         objs = tree.findall('object')
