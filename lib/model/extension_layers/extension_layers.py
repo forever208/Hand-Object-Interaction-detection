@@ -11,16 +11,26 @@ import datetime
 class extension_layer(nn.Module):
     def __init__(self):
         super(extension_layer, self).__init__()
-        self.init_layers_weights()
+        self.init_layers_weights()    # define the the layer and weights initialisation
 
 
     def forward(self, input, input_padded, roi_labels, box_info):
+        """
+        compute both predictions and loss for 3 branches (contact_state, link, hand_side)
+        :param input: pooled_feat,
+        :param input_padded: pooled_feat_padded,
+        :param roi_labels:
+        :param box_info:
+        :return:
+        """
         if (len(input.shape)) == 2:
             input = input.unsqueeze(0)
 
         if (len(input_padded.shape)) == 2:
             input_padded = input_padded.unsqueeze(0)
 
+        # output the predictions and loss
+        # loss_list: [(predictions, loss), (predictions, loss), (predictions, loss)]
         loss_list = [self.hand_contactstate_part(input_padded, roi_labels, box_info), \
                      self.hand_dxdymagnitude_part(input_padded, roi_labels, box_info), \
                      self.hand_handside_part(input, roi_labels, box_info)]
@@ -30,18 +40,23 @@ class extension_layer(nn.Module):
 
     def init_layers_weights(self):
 
+        # contact_state branch (5 outputs, portable, no contact, self-contact, stationary, other-person-contact)
         self.hand_contact_state_layer = nn.Sequential(nn.Linear(2048, 32), \
                                                       nn.ReLU(), \
                                                       nn.Dropout(p=0.5), \
                                                       nn.Linear(32, 5))
+        # link branch (3 outputs, dx, dy, magnitude)
         self.hand_dydx_layer = torch.nn.Linear(2048, 3)
+
+        # hand side branch (1 output, left/right)
         self.hand_lr_layer = torch.nn.Linear(2048, 1)
 
+        # loss function for each branch
         self.hand_contactstate_loss = nn.CrossEntropyLoss()
         self.hand_dxdymagnitude_loss = nn.MSELoss()
         self.hand_handside_loss = nn.BCEWithLogitsLoss()
 
-        #
+        # initialise the weights
         self._init_weights()
 
 
@@ -51,7 +66,7 @@ class extension_layer(nn.Module):
 
         if self.training:
             for i in range(input.size(0)):
-                gt_labels = box_info[i, :, 0]  # contactstate label
+                gt_labels = box_info[i, :, 0]  # contact_state label
                 index = roi_labels[i] == 2  # if class is hand
                 if index.sum() > 0:
                     contactstate_loss_sub = 0.1 * self.hand_contactstate_loss(contactstate_pred[i][index],
@@ -114,7 +129,7 @@ class extension_layer(nn.Module):
     def _init_weights(self):
         def normal_init(m, mean, stddev, truncated=False):
             """
-            weight initalizer: truncated normal and random normal.
+            weight initializer: truncated normal and random normal.
             """
             # x is a parameter
             if truncated:

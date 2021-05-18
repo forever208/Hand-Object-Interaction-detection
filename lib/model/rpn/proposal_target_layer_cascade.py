@@ -158,11 +158,11 @@ class _ProposalTargetLayer(nn.Module):
         labels = gt_boxes[:, :, 4].contiguous().view(-1)[(offset.view(-1),)].view(batch_size, -1)    # (batch, 2000+20)
         list_box = []
         for i in range(batch_size):
-            """error when batch > 1, IndexError: index 20 is out of bounds for dimension 0 with size 20"""
-            """this code can solve the above problem, but there is still other error regarding the box_info when batch>1"""
-            # link_label_i = box_info[i].expand(i+1, box_info.size(1), box_info.size(2)).reshape(-1, box_info.size(2))
-            # list_box.append(link_label_i[(offset[i, :].view(-1),)])
-            list_box.append(box_info[i][(offset[i, :].view(-1),)])
+            # solve the bug when batch > 1
+            link_label_i = box_info[i].expand(i+1, box_info.size(1), box_info.size(2)).reshape(-1, box_info.size(2))
+            list_box.append(link_label_i[(offset[i, :].view(-1),)])
+
+            # list_box.append(box_info[i][(offset[i, :].view(-1),)])
         boxes_info = torch.stack(list_box)
 
         labels_batch = labels.new(batch_size, rois_per_image).zero_()

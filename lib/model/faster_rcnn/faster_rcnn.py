@@ -66,7 +66,7 @@ class _fasterRCNN(nn.Module):
         # rois: 3D tensor (batch, 2000, 5), each row is a bbox [batch_ind, x1, y1, x2, y2]
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
 
-        # Select best 128 proposals, generate the 128 gt labels for final RCNN output (cls and bbox regression) when training
+        # Select best 128 proposals for training, generate the 128 gt labels for final RCNN output
         if self.training:    # self.training is a class attribute in nn.module
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes, box_info)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws, box_info = roi_data
@@ -87,8 +87,8 @@ class _fasterRCNN(nn.Module):
         # 3.        rois --> roi pooling --> pooled features 4D tensor (num_proposals, 1024, 7, 7)
         # 3  padded rois --> roi pooling -->
         rois = Variable(rois)
-
         rois_padded = Variable(self.enlarge_bbox(im_info, rois, 0.3))
+
         if cfg.POOLING_MODE == 'align':
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
             pooled_feat_padded = self.RCNN_roi_align(base_feat, rois_padded.view(-1, 5))
@@ -115,8 +115,7 @@ class _fasterRCNN(nn.Module):
         cls_score = self.RCNN_cls_score(pooled_feat)
         cls_prob = F.softmax(cls_score, 1)
         # object_feat = pooled_feat[rois_label==1,:]
-        # result = self.lineartrial(object_feat)  
-        # extension layer
+        # result = self.lineartrial(object_feat)
 
         # 5. loss function
         RCNN_loss_cls = 0
@@ -141,24 +140,28 @@ class _fasterRCNN(nn.Module):
 
     def enlarge_bbox(self, im_info, rois, ratio=0.5):
         """
-
+        double the size of each bbox
         :param im_info: 2D tensor, (batch, 3), each row is [height, width, scale_factor (1.3)]
         :param rois: 3D tensor (batch, 128, 5), each row is a selected best proposal [batch_ind, x1, y1, x2, y2]
         :return:
         """
         rois_width, rois_height = (rois[:, :, 3] - rois[:, :, 1]), (rois[:, :, 4] - rois[:, :, 2])
         rois_padded = rois.clone()
-        rois_padded[:, :, 1] = rois_padded[:, :, 1] - ratio * rois_width
-        rois_padded[:, :, 2] = rois_padded[:, :, 2] - ratio * rois_height
-        rois_padded[:, :, 1][rois_padded[:, :, 1] < 0] = 0
-        rois_padded[:, :, 2][rois_padded[:, :, 2] < 0] = 0
+        rois_padded[:, :, 1] = rois_padded[:, :, 1] - ratio * rois_width    # x1 - 0.5*width
+        rois_padded[:, :, 2] = rois_padded[:, :, 2] - ratio * rois_height    # y1 - 0.5*height
+        rois_padded[:, :, 1][rois_padded[:, :, 1] < 0] = 0    # reset to 0 if x1 exceed the boundary
+        rois_padded[:, :, 2][rois_padded[:, :, 2] < 0] = 0    # reset to 0 if y1 exceed the boundary
 
-        rois_padded[:, :, 3] = rois_padded[:, :, 3] + ratio * rois_width
-        rois_padded[:, :, 4] = rois_padded[:, :, 4] + ratio * rois_height
+        rois_padded[:, :, 3] = rois_padded[:, :, 3] + ratio * rois_width    # x2 + 0.5*width
+        rois_padded[:, :, 4] = rois_padded[:, :, 4] + ratio * rois_height    # y2 + 0.5*height
 
-        """if batch>1, error: yhe size of tensor a (128) must match the size of tensor b (2) at non-singleton dimension 1"""
-        rois_padded[:, :, 3][rois_padded[:, :, 3] > im_info[:, 0]] = im_info[:, 0]
-        rois_padded[:, :, 4][rois_padded[:, :, 4] > im_info[:, 1]] = im_info[:, 1]
+        # fix the bug when batch > 1
+        for i in range(rois_padded.size(0)):
+            rois_padded[i, :, 3][rois_padded[i, :, 3] > im_info[i, 1]] = im_info[i, 1]    # reset x2 if it exceed the boundary
+            rois_padded[i, :, 4][rois_padded[i, :, 4] > im_info[i, 0]] = im_info[i, 0]    # reset y2 if it exceed the boundary
+
+        # rois_padded[:, :, 3][rois_padded[:, :, 3] > im_info[:, 0]] = im_info[:, 0]
+        # rois_padded[:, :, 4][rois_padded[:, :, 4] > im_info[:, 1]] = im_info[:, 1]
         return rois_padded
 
 
