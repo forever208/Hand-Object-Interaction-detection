@@ -146,15 +146,15 @@ cd pretrained_model
 
 # download the backbone of resnet101
 wget https://s3.amazonaws.com/pytorch/models/resnet101-5d3b4d8f.pth
-mv resnet101-5d3b4d8f.pth resnet101_caffe.pth
+mv resnet101-5d3b4d8f.pth resnet101.pth
 
 # download the backbone of resnet50
 wget https://s3.amazonaws.com/pytorch/models/resnet50-19c8e357.pth
-mv resnet50-19c8e357.pth resnet50_caffe.pth
+mv resnet50-19c8e357.pth resnet50.pth
 
 # download the backbone of resnet152
 wget https://s3.amazonaws.com/pytorch/models/resnet152-b121ed2d.pth
-mv resnet152-b121ed2d.pth resnet152_caffe.pth
+mv resnet152-b121ed2d.pth resnet152.pth
 ```
 
 So far, the data/ folder should be like this:
