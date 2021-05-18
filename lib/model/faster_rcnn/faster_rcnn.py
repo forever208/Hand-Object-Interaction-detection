@@ -92,6 +92,7 @@ class _fasterRCNN(nn.Module):
 
         # 3.        rois --> roi pooling --> pooled features 4D tensor (128, 1024, 7, 7)
         # 3  padded rois --> roi pooling --> pooled features 4D tensor (128, 1024, 7, 7)
+        # loss batch dimension in this step
         if cfg.POOLING_MODE == 'align':
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
             pooled_feat_padded = self.RCNN_roi_align(base_feat, rois_padded.view(-1, 5))
@@ -156,13 +157,13 @@ class _fasterRCNN(nn.Module):
         rois_padded[:, :, 3] = rois_padded[:, :, 3] + ratio * rois_width    # x2 + 0.5*width
         rois_padded[:, :, 4] = rois_padded[:, :, 4] + ratio * rois_height    # y2 + 0.5*height
 
-        # fix the bug when batch > 1
-        for i in range(rois_padded.size(0)):
-            rois_padded[i, :, 3][rois_padded[i, :, 3] > im_info[i, 1]] = im_info[i, 1]    # reset x2 if it exceed the boundary
-            rois_padded[i, :, 4][rois_padded[i, :, 4] > im_info[i, 0]] = im_info[i, 0]    # reset y2 if it exceed the boundary
+        # # fix the bug when batch > 1
+        # for i in range(rois_padded.size(0)):
+        #     rois_padded[i, :, 3][rois_padded[i, :, 3] > im_info[i, 1]] = im_info[i, 1]    # reset x2 if it exceed the boundary
+        #     rois_padded[i, :, 4][rois_padded[i, :, 4] > im_info[i, 0]] = im_info[i, 0]    # reset y2 if it exceed the boundary
 
-        # rois_padded[:, :, 3][rois_padded[:, :, 3] > im_info[:, 0]] = im_info[:, 0]
-        # rois_padded[:, :, 4][rois_padded[:, :, 4] > im_info[:, 1]] = im_info[:, 1]
+        rois_padded[:, :, 3][rois_padded[:, :, 3] > im_info[:, 0]] = im_info[:, 0]
+        rois_padded[:, :, 4][rois_padded[:, :, 4] > im_info[:, 1]] = im_info[:, 1]
         return rois_padded
 
 

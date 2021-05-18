@@ -84,7 +84,7 @@ def parse_args():
                         action='store_true')
 
     parser.add_argument('--model_name',
-                        help='directory to save models', default='handobj_100K',
+                        help='directory to load models', default='handobj_100K',
                         required=False, type=str)
     parser.add_argument('--save_name',
                         help='folder to save eval results',
@@ -103,6 +103,7 @@ def parse_args():
 lr = cfg.TRAIN.LEARNING_RATE
 momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
+
 
 if __name__ == '__main__':
     args = parse_args()
@@ -164,7 +165,7 @@ if __name__ == '__main__':
         cfg.POOLING_MODE = checkpoint['pooling_mode']
 
     print('load model successfully!')
-    # initilize the tensor holder here.
+    # initialize the tensor holder here.
     im_data = torch.FloatTensor(1)
     im_info = torch.FloatTensor(1)
     num_boxes = torch.LongTensor(1)
@@ -206,8 +207,7 @@ if __name__ == '__main__':
                  for _ in xrange(imdb.num_classes)]
 
     output_dir = get_output_dir(imdb, save_name)
-    dataset = roibatchLoader(roidb, ratio_list, ratio_index, 1, \
-                             imdb.num_classes, training=False, normalize=False)
+    dataset = roibatchLoader(roidb, ratio_list, ratio_index, 1, imdb.num_classes, training=False, normalize=False)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
                                              shuffle=False, num_workers=0,
                                              pin_memory=True)

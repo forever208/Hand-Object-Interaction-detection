@@ -42,7 +42,7 @@ def prep_im_for_blob(im, pixel_means, target_size, max_size):
     :return:
     """
 
-    # for pytorch pre-trained model, we need to do the pixel normalisation
+    # 1. for pytorch pre-trained model, we need to do the pixel normalisation
     # https://pytorch.org/docs/stable/torchvision/models.html
     im = im.astype(np.float32, copy=False)
     im /= 255.    # shrink pixel to [0,1]
@@ -50,6 +50,10 @@ def prep_im_for_blob(im, pixel_means, target_size, max_size):
     pixel_stdens = [0.229, 0.224, 0.225]
     im -= pixel_means    # Minus mean
     im /= pixel_stdens    # divide by stddev
+
+    # # 2. for caffe pre-trained model, we don't need to do the pixel normalisation
+    # im = im.astype(np.float32, copy=False)
+    # im -= pixel_means
 
     # im = im[:, :, ::-1]
     im_shape = im.shape
