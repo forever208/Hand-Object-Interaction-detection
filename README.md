@@ -166,7 +166,7 @@ data/
 To train a hand object detector model with resnet101 on pascal_voc format data, run:
 note that, we only support batch_size = 1 right now
 ```
-python trainval_net.py --net res101 --bs 1 --nw 2 --lr 1e-3 --lr_decay_step 3 --cuda --epoch=10 --use_tfb 
+python trainval_net_Colab.py --bs 1 --nw 2 --net res101 --lr 1e-3 --lr_decay_step 3 --epoch=10 --cuda --use_tfb
 ```
 
 
