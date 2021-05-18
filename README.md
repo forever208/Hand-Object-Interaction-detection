@@ -138,7 +138,7 @@ mv data/pascal_voc_format/VOCdevkit2007_handobj_100K/ data/
 ```
 
 ### Download pre-trained model
-Download pretrained Resnet-101 model by running the command
+Download pretrained Resnet model by running the command
 ```
 cd data
 mkdir pretrained_model
