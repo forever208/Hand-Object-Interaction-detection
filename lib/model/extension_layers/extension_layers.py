@@ -17,10 +17,10 @@ class extension_layer(nn.Module):
     def forward(self, input, input_padded, roi_labels, box_info):
         """
         compute both predictions and loss for 3 branches (contact_state, link, hand_side)
-        :param input: pooled_feat,
-        :param input_padded: pooled_feat_padded,
+        :param input: pooled_feat, 2D tensor (batch, 2048)
+        :param input_padded: padded_pooled_feat, 2D tensor (batch, 2048)
         :param roi_labels:
-        :param box_info:
+        :param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
         :return:
         """
         if (len(input.shape)) == 2:

@@ -77,6 +77,7 @@ class _fasterRCNN(nn.Module):
             rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
             rois_outside_ws = Variable(rois_outside_ws.view(-1, rois_outside_ws.size(2)))
         else:
+            rois_label_retain = None
             rois_label = None
             rois_target = None
             rois_inside_ws = None
@@ -84,11 +85,13 @@ class _fasterRCNN(nn.Module):
             rpn_loss_cls = 0
             rpn_loss_bbox = 0
 
-        # 3.        rois --> roi pooling --> pooled features 4D tensor (num_proposals, 1024, 7, 7)
-        # 3  padded rois --> roi pooling -->
+        # 128 proposal bboxes, 3D tensor (batch, 128, 5)
         rois = Variable(rois)
+        # expand the size of each bbox by 0.3*2 times
         rois_padded = Variable(self.enlarge_bbox(im_info, rois, 0.3))
 
+        # 3.        rois --> roi pooling --> pooled features 4D tensor (128, 1024, 7, 7)
+        # 3  padded rois --> roi pooling --> pooled features 4D tensor (128, 1024, 7, 7)
         if cfg.POOLING_MODE == 'align':
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
             pooled_feat_padded = self.RCNN_roi_align(base_feat, rois_padded.view(-1, 5))
@@ -98,8 +101,8 @@ class _fasterRCNN(nn.Module):
         else:
             raise Exception("rpn pooling mode is not defined")
 
-        # 4.        pooled features --> get bbox predictions
-        # 4. padded pooled features --> get
+        # 4.        pooled features --> downsample to 2D tensor (128, 2048) --> get bbox predictions
+        # 4. padded pooled features --> downsample to 2D tensor (128, 2048)
         pooled_feat = self._head_to_tail(pooled_feat)    # _head_to_tail() is defined in the child class (resnet)
         pooled_feat_padded = self._head_to_tail(pooled_feat_padded)
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)    # RCNN_bbox_pred() is defined in the child class (resnet)
@@ -123,11 +126,9 @@ class _fasterRCNN(nn.Module):
         loss_list = []
 
         if self.training:
-            # classification loss
-            RCNN_loss_cls = F.cross_entropy(cls_score, rois_label)
-            # bounding box regression L1 loss
-            RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
-            # auxiliary layer
+            RCNN_loss_cls = F.cross_entropy(cls_score, rois_label)    # classification loss
+            RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)    # bbox regression L1 loss
+            # prediction and loss of auxiliary layer
             loss_list = self.extension_layer(pooled_feat, pooled_feat_padded, rois_label_retain, box_info)
         else:
             loss_list = self.extension_layer(pooled_feat, pooled_feat_padded, None, box_info)
