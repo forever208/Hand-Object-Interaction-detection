@@ -137,14 +137,24 @@ cd ..
 mv data/pascal_voc_format/VOCdevkit2007_handobj_100K/ data/
 ```
 
-### Download pre-trained Resnet-101 model
+### Download pre-trained model
 Download pretrained Resnet-101 model by running the command
 ```
 cd data
 mkdir pretrained_model
 cd pretrained_model
 
-wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1Pyv546ss5q4idvcXE_Z_GFn_qOhDz10H' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1Pyv546ss5q4idvcXE_Z_GFn_qOhDz10H" -O resnet101_caffe.pth && rm -rf /tmp/cookies.txt
+# download the backbone of resnet101
+wget https://s3.amazonaws.com/pytorch/models/resnet101-5d3b4d8f.pth
+mv resnet101-5d3b4d8f.pth resnet101_caffe.pth
+
+# download the backbone of resnet50
+wget https://s3.amazonaws.com/pytorch/models/resnet50-19c8e357.pth
+mv resnet50-19c8e357.pth resnet50_caffe.pth
+
+# download the backbone of resnet152
+wget https://s3.amazonaws.com/pytorch/models/resnet152-b121ed2d.pth
+mv resnet152-b121ed2d.pth resnet152_caffe.pth
 ```
 
 So far, the data/ folder should be like this:
