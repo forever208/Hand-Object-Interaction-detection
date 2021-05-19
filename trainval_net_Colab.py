@@ -343,7 +343,7 @@ if __name__ == '__main__':
                 loss_temp = 0
                 start = time.time()
 
-        # save model after each epoch
+        # save model locally after each epoch
         save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
         state = {
             'session': args.session,
@@ -357,7 +357,7 @@ if __name__ == '__main__':
         print('save model: {}'.format(save_name))
 
         # save model to Google drive
-        Google_drive_path = '/content/drive/MyDrive/HOI_detection'
+        Google_drive_path = '/content/drive/MyDrive/HOI_detection/trained_model'
         if os.path.exists(Google_drive_path):
             save_name_gdrive = os.path.join(Google_drive_path, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
             torch.save(state, save_name_gdrive)
