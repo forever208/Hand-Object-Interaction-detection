@@ -99,13 +99,6 @@ class pascal_voc(imdb):
         with open(image_set_file) as f:
             image_index = [x.strip() for x in f.readlines()]
 
-        # 19695 training dataset, 1666 test dataset
-        if len(image_index) > 50000:
-            num_load_imgs = 19695
-        else:
-            num_load_imgs = 1666
-
-        image_index = image_index[:num_load_imgs]
         return image_index
 
 
@@ -353,17 +346,8 @@ class pascal_voc(imdb):
 
 
     def _do_python_eval(self, output_dir='output'):
-        annopath = os.path.join(
-            self._devkit_path,
-            'VOC' + self._year,
-            'Annotations',
-            '{:s}.xml')
-        imagesetfile = os.path.join(
-            self._devkit_path,
-            'VOC' + self._year,
-            'ImageSets',
-            'Main',
-            self._image_set + '.txt')
+        annopath = os.path.join(self._devkit_path, 'VOC'+self._year, 'Annotations', '{:s}.xml')
+        imagesetfile = os.path.join(self._devkit_path, 'VOC'+self._year, 'ImageSets', 'Main', self._image_set+'.txt')
         cachedir = os.path.join(self._devkit_path, 'annotations_cache')
         aps = []
         # The PASCAL VOC metric changed in 2010
@@ -426,6 +410,11 @@ class pascal_voc(imdb):
 
 
     def evaluate_detections(self, all_boxes, output_dir):
+        """
+        entrance AP calculation
+        :param all_boxes:
+        :param output_dir:
+        """
         self._write_voc_results_file(all_boxes)
         self._do_python_eval(output_dir)
         if self.config['matlab_eval']:
