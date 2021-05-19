@@ -44,10 +44,18 @@ class extension_layer(nn.Module):
         define the the layer and do weights initialisation
         """
         # contact_state branch (5 outputs, portable, no contact, self-contact, stationary, other-person-contact)
-        self.hand_contact_state_layer = nn.Sequential(nn.Linear(2048, 32), \
+        # self.hand_contact_state_layer = nn.Sequential(nn.Linear(2048, 32), \
+        #                                               nn.ReLU(), \
+        #                                               nn.Dropout(p=0.5), \
+        #                                               nn.Linear(32, 5))
+        self.hand_contact_state_layer = nn.Sequential(nn.Linear(2048, 256), \
                                                       nn.ReLU(), \
-                                                      nn.Dropout(p=0.5), \
+                                                      nn.Dropout(p=0.3), \
+                                                      nn.Linear(256, 32), \
+                                                      nn.ReLU(), \
+                                                      nn.Dropout(p=0.3), \
                                                       nn.Linear(32, 5))
+
         # link branch (3 outputs, dx, dy, magnitude)
         self.hand_dydx_layer = torch.nn.Linear(2048, 3)
 
