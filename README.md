@@ -190,7 +190,7 @@ python test_net_Colab.py --model_name=handobj_100k --save_name=handobj_100k --cu
 
 ## 【6】Benchmarking (AP@50)
 
-### Notice that
+### Note that
 Considering the time consumption, we only use 3 image senarios (boardgame, diy, drink) for the benchmark.
 
 The benchmark is trained with 19695 images and tested with 1666 images. 
@@ -207,13 +207,14 @@ The easiest way of doing so is directly modify the files:
 
 learning_rate = 0.001, lr_decay = 0.1, lr_decay_step = 3, train 10 epoches
 
-| Backbone  | Hand  | Target | Hand + Contact State | Hand + Target | Hand + Target + Contact State | Model link     |
-|-----------|-------|--------|----------------------|---------------|-------------------------------|----------------|
-| ResNet50  | 80.90 | 46.60  | 52.32                | 26.91         | 20.90                         | 1_10_19694.pth |
-| ResNet101 | 80.86 | 51.71  | 53.45                | 30.82         | 27.45                         |                |
-| ResNet152 |       |        |                      |               |                               |                |
+| Backbone  | Hand  | Target | Hand + <br>Side | Hand + <br>Contact State | Hand + <br>Target | Hand + <br>All | Model link     |
+|-----------|-------|--------|-----------------|--------------------------|-------------------|----------------|----------------|
+| ResNet50  | 80.86 | 46.60  | 67.14           | 52.32                    | 26.91             | 20.90          | 1_10_19694.pth |
+| ResNet101 | 80.90 | 51.71  | 68.15           | 53.45                    | 30.82             | 27.45          |                |
+| ResNet152 |       |        |                 |                          |                   |                |                |
 
 
+### Comparison of learning schedule
 
 
 
