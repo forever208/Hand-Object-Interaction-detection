@@ -192,11 +192,11 @@ python test_net_Colab.py --model_name=handobj_100k --save_name=handobj_100k --cu
 
 ### Comparison of backbones
 
-| Backbone  | Hand  | Target | Hand + Contact State | Hand + Target | Hand + Target + Contact State | Model link |
-|-----------|-------|--------|----------------------|---------------|-------------------------------|------------|
-| ResNet50  | 80.90 | 46.60  | 52.32                | 26.91         | 20.90                         |[HOI detection.ipynb](https://colab.research.google.com/drive/1AEAgVhDKNsmUmmDRG9dP9y4VToC4pVn1?usp=sharing)            |
-| ResNet101 | 80.86 | 51.71  | 53.45                | 30.82         | 27.45                         |            |
-| ResNet152 | xxxx  |        |                      |               |                               |            |
+| Backbone  | Hand  | Target | Hand + Contact State | Hand + Target | Hand + Target + Contact State | Model link                 |
+|-----------|-------|--------|----------------------|---------------|-------------------------------|----------------------------|
+| ResNet50  | 80.90 | 46.60  | 52.32                | 26.91         | 20.90                         | faster_rcnn_1_10_19694.pth |
+| ResNet101 | 80.86 | 51.71  | 53.45                | 30.82         | 27.45                         |                            |
+| ResNet152 |       |        |                      |               |                               |                            |
 
 
 - Tested on the testset of our **100K and ego** dataset:
