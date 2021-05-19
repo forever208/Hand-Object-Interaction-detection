@@ -59,7 +59,7 @@ class extension_layer(nn.Module):
         # link branch (3 outputs, dx, dy, magnitude)
         self.hand_dydx_layer = torch.nn.Linear(2048, 3)
 
-        # hand side branch (1 output, left/right)
+        # hand side branch (1 output, left/right) But the author said the output is R2...
         self.hand_lr_layer = torch.nn.Linear(2048, 1)
 
         # loss function for each branch
@@ -83,10 +83,10 @@ class extension_layer(nn.Module):
         contactstate_loss = 0
 
         if self.training:
-            for i in range(input.size(0)):
-                gt_labels = box_info[i, :, 0]  # contact_state label
-                index = roi_labels[i] == 2  # if class is hand
-                if index.sum() > 0:
+            for i in range(input.size(0)):    # for each batch
+                gt_labels = box_info[i, :, 0]    # contact_state label
+                index = roi_labels[i] == 2    # get a True/False array
+                if index.sum() > 0:    # if there is a hand, add up the loss
                     contactstate_loss_sub = 0.1 * self.hand_contactstate_loss(contactstate_pred[i][index],
                                                                               gt_labels[index].long())
 
