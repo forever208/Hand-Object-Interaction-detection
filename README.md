@@ -188,8 +188,16 @@ python test_net_Colab.py --model_name=handobj_100k --save_name=handobj_100k --cu
 ```
 
 
-## 【6】Benchmarking (AP)
+## 【6】Benchmarking (AP@50)
 <!-- Table, test on all -->
+
+| Backbone  | Hand  | Target | Hand + Contact State | Hand + Target | Hand + Target + Contact State | Model link |
+|-----------|-------|--------|----------------------|---------------|-------------------------------|------------|
+| ResNet50  | 80.90 | 46.60  | 52.32                | 26.91         | 20.90                         |            |
+| ResNet101 | 80.86 | 51.71  | 53.45                | 30.82         | 27.45                         |            |
+| ResNet152 | 80.86 | 51.71  | 53.45                | 30.82         | 27.45                         |            |
+
+
 - Tested on the testset of our **100K and ego** dataset:
 <table><tbody>
 <tr>
