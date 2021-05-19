@@ -190,7 +190,14 @@ python test_net_Colab.py --model_name=handobj_100k --save_name=handobj_100k --cu
 
 ## 【6】Benchmarking (AP@50)
 
+Considering the time consumption, we only use 3 image senarios (boardgame, diy, drink) for the benchmark.
+
+The benchmark is trained with 19695 images and tested with 1666 images. 
+
+
 ### Comparison of backbones
+
+learning_rate = 0.001, lr_decay = 0.1, lr_decay_step = 3, train 10 epoches
 
 | Backbone  | Hand  | Target | Hand + Contact State | Hand + Target | Hand + Target + Contact State | Model link     |
 |-----------|-------|--------|----------------------|---------------|-------------------------------|----------------|
@@ -199,123 +206,6 @@ python test_net_Colab.py --model_name=handobj_100k --save_name=handobj_100k --cu
 | ResNet152 |       |        |                      |               |                               |                |
 
 
-- Tested on the testset of our **100K and ego** dataset:
-<table><tbody>
-<tr>
-<td align="center">Name</td>
-<td align="center">Hand</td>
-<td align="center">Obj</td>
-<td align="center">H+Side</td>
-<td align="center">H+State</td>
-<td align="center">H+O</td>
-<td align="center">All</td>
-<td align="center">Model Download Link</td>
-</tr>
-
-<tr>
-<td align='left'>handobj_100K+ego</td>
-<td align='center'>90.4</td>
-<td align='center'>66.3</td>
-<td align='center'>88.4</td>
-<td align='center'>73.2</td>
-<td align='center'>47.6</td>
-<td align='center'>39.8</td>
-<td align="center"><a href="https://drive.google.com/open?id=1H2tWsZkS7tDF8q1-jdjx6V9XrK25EDbE">faster_rcnn_1_8_132028.pth</a></td>
-</tr>
-
-<tr>
-<td align='left'>handobj_100K</td>
-<td align='center'>89.8</td>
-<td align='center'>51.5</td>
-<td align='center'>65.8</td>
-<td align='center'>62.4</td>
-<td align='center'>27.9</td>
-<td align='center'>20.9</td>
-<td align="center"><a href="https://drive.google.com/open?id=166IM6CXA32f9L6V7-EMd9m8gin6TFpim">faster_rcnn_1_8_89999.pth</a></td>
-</tr>
-
-</tbody></table>
-
-
-
-<!-- Table, test on 100K -->
-- Tested on the testset of our **100K** dataset:
-<table><tbody>
-<tr>
-<tr><td align="center">Name</td>
-<td align="center">Hand</td>
-<td align="center">Obj</td>
-<td align="center">H+Side</td>
-<td align="center">H+State</td>
-<td align="center">H+O</td>
-<td align="center">All</td>
-</tr>
-
-<tr>
-<td align='left'>handobj_100K+ego</td>
-<td align='center'>89.6</td>
-<td align='center'>64.7</td>
-<td align='center'>79.0</td>
-<td align='center'>63.8</td>
-<td align='center'>45.1</td>
-<td align='center'>36.8</td>
-</tr>
-
-<tr>
-<td align='left'>handobj_100K</td>
-<td align='center'>89.6</td>
-<td align='center'>64.0</td>
-<td align='center'>78.9</td>
-<td align='center'>64.2</td>
-<td align='center'>46.9</td>
-<td align='center'>38.6</td>
-</tr>
-
-</tbody></table>
-
-
-<!-- Table, test on ego -->
-- Tested on the testset of our **ego** dataset:
-<table><tbody>
-<tr>
-<tr><td align="center">Name</td>
-<td align="center">Hand</td>
-<td align="center">Obj</td>
-<td align="center">H+Side</td>
-<td align="center">H+State</td>
-<td align="center">H+O</td>
-<td align="center">All</td>
-</tr>
-
-<tr>
-<td align='left'>handobj_100K+ego</td>
-<td align='center'>90.5</td>
-<td align='center'>67.2</td>
-<td align='center'>90.0</td>
-<td align='center'>75.0</td>
-<td align='center'>47.4</td>
-<td align='center'>46.3</td>
-</tr>
-
-<tr>
-<td align='left'>handobj_100K</td>
-<td align='center'>89.8</td>
-<td align='center'>41.7</td>
-<td align='center'>59.5</td>
-<td align='center'>62.8</td>
-<td align='center'>20.3</td>
-<td align='center'>12.7</td>
-</tr>
-
-</tbody></table>
-
-
-The model **handobj_100K** is trained on trainset of **100K** youtube frames. 
-
-The model **handobj_100K+ego** is trained on trainset of **100K** plus additional **egocentric** data we annotated, which works much better on egocentric data. 
-
-We provide the frame names of the egocentric data we used here: [trainval.txt](https://github.com/ddshan/hand_object_detector/blob/master/assets/data_ego_framename/trainval.txt), [test.txt](https://github.com/ddshan/hand_object_detector/blob/master/assets/data_ego_framename/test.txt). This split is backwards compatible with
-the [Epic-Kitchens2018](https://epic-kitchens.github.io/2018) (EK), [EGTEA](http://cbs.ic.gatech.edu/fpv/), and [CharadesEgo](https://prior.allenai.org/projects/charades-ego) (CE).
 
 
 
