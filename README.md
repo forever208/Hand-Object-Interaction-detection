@@ -206,7 +206,7 @@ The easiest way of doing so is directly modify the files:
 ### Comparison of backbones
 
 parameter setting
-  - lr_start = 1e-3, lr_end = 1e-5
+  - lr_start = 1e-3, lr_end = 1e-6
   - lr_decay_epoch = 3, epochs = 10
 
 | Backbone  | Hand  | Target | Hand + <br>Side | Hand + <br>Contact State | Hand + <br>Target | Hand + <br>All | Model link     |
@@ -219,7 +219,7 @@ parameter setting
 ### Comparison of learning schedule
 Use ResNet101 as the backbone
 
-share the common learning rate for the first and last epoch (lr_start = 1e-3, lr_end = 1e-5)
+share the common learning rate for the first and last epoch (lr_start = 1e-3, lr_end = 1e-6)
 
 | Learning<br>Schedule           | Hand  | Target | Hand + <br>Side | Hand + <br>Contact State | Hand + <br>Target | Hand + <br>All |
 |--------------------------------|-------|--------|-----------------|--------------------------|-------------------|----------------|
