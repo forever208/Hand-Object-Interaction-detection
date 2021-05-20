@@ -322,7 +322,7 @@ if __name__ == '__main__':
                       % (args.session, epoch, step, iters_per_epoch, loss_temp, lr))
                 print("\t\t\tfg/bg=(%d/%d), time cost: %f" % (fg_cnt, bg_cnt, end - start))
 
-                print("\t\t\t\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f, contact_state_loss: %.4f, dydx_loss: %.4f, lr_loss: %.4f" \
+                print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f, contact_state_loss: %.4f, dydx_loss: %.4f, lr_loss: %.4f" \
                       % (loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box, loss_hand_state, loss_hand_dydx, loss_hand_lr))
 
                 # print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
