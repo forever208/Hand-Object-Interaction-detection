@@ -20,7 +20,7 @@ class extension_layer(nn.Module):
         :param input: pooled_feat, 2D tensor (num_boxes, 2048)
         :param input_padded: padded_pooled_feat, 2D tensor (num_boxes, 2048)
         :param roi_labels: object class labels, 2D tensor (batch, num_boxes)
-        :param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
+        :param box_info: HOI labels, 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
         :return:
         """
 
@@ -44,17 +44,17 @@ class extension_layer(nn.Module):
         define the the layer and do weights initialisation
         """
         # contact_state branch (5 outputs, portable, no contact, self-contact, stationary, other-person-contact)
-        # self.hand_contact_state_layer = nn.Sequential(nn.Linear(2048, 32), \
-        #                                               nn.ReLU(), \
-        #                                               nn.Dropout(p=0.5), \
-        #                                               nn.Linear(32, 5))
-        self.hand_contact_state_layer = nn.Sequential(nn.Linear(2048, 256), \
+        self.hand_contact_state_layer = nn.Sequential(nn.Linear(2048, 32), \
                                                       nn.ReLU(), \
-                                                      nn.Dropout(p=0.3), \
-                                                      nn.Linear(256, 32), \
-                                                      nn.ReLU(), \
-                                                      nn.Dropout(p=0.3), \
+                                                      nn.Dropout(p=0.5), \
                                                       nn.Linear(32, 5))
+        # self.hand_contact_state_layer = nn.Sequential(nn.Linear(2048, 256), \
+        #                                               nn.ReLU(), \
+        #                                               nn.Dropout(p=0.3), \
+        #                                               nn.Linear(256, 32), \
+        #                                               nn.ReLU(), \
+        #                                               nn.Dropout(p=0.3), \
+        #                                               nn.Linear(32, 5))
 
         # link branch (3 outputs, dx, dy, magnitude)
         self.hand_dydx_layer = torch.nn.Linear(2048, 3)
