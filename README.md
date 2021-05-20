@@ -205,7 +205,9 @@ The easiest way of doing so is directly modify the files:
 
 ### Comparison of backbones
 
-learning_rate = 0.001, lr_decay = 0.1, lr_decay_step = 3, train 10 epoches
+parameter setting
+  - lr_start = 1e-3, lr_end = 1e-5
+  - lr_decay_epoch = 3, epochs = 10
 
 | Backbone  | Hand  | Target | Hand + <br>Side | Hand + <br>Contact State | Hand + <br>Target | Hand + <br>All | Model link     |
 |-----------|-------|--------|-----------------|--------------------------|-------------------|----------------|----------------|
@@ -224,6 +226,15 @@ share the common learning rate for the first and last epoch (lr_start = 1e-3, lr
 | decay_epoch = 1<br>epochs = 4  | 80.75 | 46.02  | 65.68           | 48.86                    | 19.29             | 16.08          |
 | decay_epoch = 2<br>epochs = 7  | 81.13 | 51.49  | 68.20           | 54.46                    | 28.40             | 21.73          |
 | decay_epoch = 3<br>epochs = 10 | 81.35 | 52.61  | 68.51           | 55.50                    | 30.85             | 28.18          |
+
+
+### Comparison of network optimisation
+
+parameter setting
+  - ResNet101 as the backbone
+  - lr_start = 1e-3, lr_end = 1e-5
+  - lr_decay_epoch = 3, epochs = 10
+
 
 
 
