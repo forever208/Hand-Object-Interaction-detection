@@ -210,12 +210,20 @@ learning_rate = 0.001, lr_decay = 0.1, lr_decay_step = 3, train 10 epoches
 | Backbone  | Hand  | Target | Hand + <br>Side | Hand + <br>Contact State | Hand + <br>Target | Hand + <br>All | Model link     |
 |-----------|-------|--------|-----------------|--------------------------|-------------------|----------------|----------------|
 | ResNet50  | 80.86 | 46.60  | 67.14           | 52.32                    | 26.91             | 20.90          | 1_10_19694.pth |
-| ResNet101 | 80.90 | 51.71  | 68.15           | 53.45                    | 30.82             | 27.45          |                |
-| ResNet152 |       |        |                 |                          |                   |                |                |
+| ResNet101 | 81.35 | 52.61  | 68.51           | 55.50                    | 30.85             | 28.18          | 1_10_19694.pth |
+| ResNet152 | 81.36 | 55.39  | 76.11           | 61.88                    | 37.90             | 29.95          | 1_9_19694.pth  |
 
 
 ### Comparison of learning schedule
+Use ResNet101 as the backbone
 
+share the common learning rate for the first and last epoch (lr_start = 1e-3, lr_end = 1e-5)
+
+| Learning<br>Schedule           | Hand  | Target | Hand + <br>Side | Hand + <br>Contact State | Hand + <br>Target | Hand + <br>All |
+|--------------------------------|-------|--------|-----------------|--------------------------|-------------------|----------------|
+| decay_epoch = 1<br>epochs = 4  | 80.75 | 46.02  | 65.68           | 48.86                    | 19.29             | 16.08          |
+| decay_epoch = 2<br>epochs = 7  | 81.13 | 51.49  | 68.20           | 54.46                    | 28.40             | 21.73          |
+| decay_epoch = 3<br>epochs = 10 | 81.35 | 52.61  | 68.51           | 55.50                    | 30.85             | 28.18          |
 
 
 
