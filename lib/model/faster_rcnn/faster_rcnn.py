@@ -102,10 +102,12 @@ class _fasterRCNN(nn.Module):
         else:
             raise Exception("rpn pooling mode is not defined")
 
-        # 4.        pooled features --> downsample to 2D tensor (128, 2048) --> get bbox predictions
+        # 4.        pooled features --> downsample to 2D tensor (128, 2048)
         # 4. padded pooled features --> downsample to 2D tensor (128, 2048)
         pooled_feat = self._head_to_tail(pooled_feat)    # _head_to_tail() is defined in the child class (resnet)
         pooled_feat_padded = self._head_to_tail(pooled_feat_padded)
+
+        # 5. 2D feature tensor (128, 2048) --> get bbox predictions
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)    # RCNN_bbox_pred() is defined in the child class (resnet)
 
         # select the corresponding columns according to roi labels
@@ -115,13 +117,13 @@ class _fasterRCNN(nn.Module):
                                             rois_label.view(rois_label.size(0), 1, 1).expand(rois_label.size(0), 1, 4))
             bbox_pred = bbox_pred_select.squeeze(1)
 
-        # 4. pooled features --> get class predictions
+        # 5. 2D feature tensor (128, 2048) --> get class predictions
         cls_score = self.RCNN_cls_score(pooled_feat)
         cls_prob = F.softmax(cls_score, 1)
         # object_feat = pooled_feat[rois_label==1,:]
         # result = self.lineartrial(object_feat)
 
-        # 5. loss function
+        # 6. loss function
         RCNN_loss_cls = 0
         RCNN_loss_bbox = 0
         loss_list = []
