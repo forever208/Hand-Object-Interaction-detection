@@ -20,7 +20,6 @@ import pdb
 
 class _ProposalTargetLayer(nn.Module):
     """
-    Assign object detection proposals to ground-truth targets.
     Produces proposal classification labels and bounding-box regression targets.
     """
 
@@ -36,7 +35,7 @@ class _ProposalTargetLayer(nn.Module):
         """
 
         :param all_rois: 3D tensor (batch, 2000, 5), each row is a proposal bbox [batch_ind, x1, y1, x2, y2]
-        :param gt_boxes: 3D tensor (batch, num_boxes, 5), each row is [cls, x1, y1, x2, y2]
+        :param gt_boxes: 3D tensor (batch, num_boxes, 5), each row is [x1, y1, x2, y2, cls]
         :param num_boxes: 2D tensor (batch, 1), default as 20
         :param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
         :return:
@@ -48,15 +47,17 @@ class _ProposalTargetLayer(nn.Module):
         gt_boxes_append = gt_boxes.new(gt_boxes.size()).zero_()
         gt_boxes_append[:, :, 1:5] = gt_boxes[:, :, :4]    # (batch, num_boxes, 5), each row is [0, x1, y1, x2, y2]
 
-        # Include ground-truth boxes in the set of candidate rois
-        all_rois = torch.cat([all_rois, gt_boxes_append], 1)    # (batch, 300+num_boxes, 5)
-
-        # only pick up 128 roi proposals to train
+        """
+        concate the max 20 gt bboxes into the 2000 proposals as new proposals
+        why: easy the problem of unbalance between positives and negatives (too much negatives in 2000 proposals)
+             at the early training stage, there might be 0 positve proposal, thus it is hard to train
+        """
+        all_rois = torch.cat([all_rois, gt_boxes_append], 1)    # (batch, 2000+num_boxes, 5)
         rois_per_image = int(cfg.TRAIN.BATCH_SIZE)    # 128
-        fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))    # 128/4 = 32
+        fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))    # 128/4 = max 32 positive proposals
         fg_rois_per_image = 1 if fg_rois_per_image == 0 else fg_rois_per_image
 
-        # Generate a random sample of RoIs comprising foreground and background examples.
+        # Select 128 proposals based on IOU between gt box and proposal, generate corresponding labels
         labels, rois, \
         bbox_targets, bbox_inside_weights, \
         box_info = self._sample_rois_pytorch(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, self._num_classes, box_info)
