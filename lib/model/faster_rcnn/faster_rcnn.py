@@ -89,6 +89,7 @@ class _fasterRCNN(nn.Module):
         rois = Variable(rois)
         # expand the size of each bbox by 0.3*2 times
         rois_padded = Variable(self.enlarge_bbox(im_info, rois, 0.3))
+        rois_padded_small = Variable(self.enlarge_bbox(im_info, rois, 0.1))
 
         # 3.        rois --> roi pooling --> pooled features 4D tensor (128, 1024, 7, 7)
         # 3  padded rois --> roi pooling --> pooled features 4D tensor (128, 1024, 7, 7)
@@ -96,9 +97,11 @@ class _fasterRCNN(nn.Module):
         if cfg.POOLING_MODE == 'align':
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
             pooled_feat_padded = self.RCNN_roi_align(base_feat, rois_padded.view(-1, 5))
+            pooled_feat_padded_small = self.RCNN_roi_align(base_feat, rois_padded_small.view(-1, 5))
         elif cfg.POOLING_MODE == 'pool':
             pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1, 5))
             pooled_feat_padded = self.RCNN_roi_pool(base_feat, rois_padded.view(-1, 5))
+            pooled_feat_padded_small = self.RCNN_roi_pool(base_feat, rois_padded_small.view(-1, 5))
         else:
             raise Exception("rpn pooling mode is not defined")
 
@@ -106,9 +109,10 @@ class _fasterRCNN(nn.Module):
         # 4. padded pooled features --> downsample to 2D tensor (128, 2048)
         pooled_feat = self._head_to_tail(pooled_feat)    # _head_to_tail() is defined in the child class (resnet)
         pooled_feat_padded = self._head_to_tail(pooled_feat_padded)
+        pooled_feat_padded_head = self._head_to_tail(pooled_feat_padded_small)
 
         # 5. 2D feature tensor (128, 2048) --> get bbox predictions
-        bbox_pred = self.RCNN_bbox_pred(pooled_feat_padded)    # RCNN_bbox_pred() is defined in the child class (resnet)
+        bbox_pred = self.RCNN_bbox_pred(pooled_feat_padded_head)    # RCNN_bbox_pred() is defined in the child class (resnet)
 
         # select the corresponding columns according to roi labels
         if self.training and not self.class_agnostic:
@@ -118,7 +122,7 @@ class _fasterRCNN(nn.Module):
             bbox_pred = bbox_pred_select.squeeze(1)
 
         # 5. 2D feature tensor (128, 2048) --> get class predictions
-        cls_score = self.RCNN_cls_score(pooled_feat_padded)
+        cls_score = self.RCNN_cls_score(pooled_feat_padded_head)
         cls_prob = F.softmax(cls_score, 1)
         # object_feat = pooled_feat[rois_label==1,:]
         # result = self.lineartrial(object_feat)
