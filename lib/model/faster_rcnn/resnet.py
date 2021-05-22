@@ -243,12 +243,23 @@ class resnet(_fasterRCNN):
 
         # cls prediction branch
         self.RCNN_cls_score = nn.Linear(2048, self.n_classes)
+        # self.RCNN_cls_score = nn.Sequential(nn.Linear(2048, 32), \
+        #                                     nn.ReLU(), \
+        #                                     nn.Linear(32, self.n_classes))
 
         # bbox prediction branch
         if self.class_agnostic:
             self.RCNN_bbox_pred = nn.Linear(2048, 4)
         else:
             self.RCNN_bbox_pred = nn.Linear(2048, 4 * self.n_classes)
+        # if self.class_agnostic:
+        #     self.RCNN_bbox_pred = nn.Sequential(nn.Linear(2048, 32), \
+        #                                         nn.ReLU(), \
+        #                                         nn.Linear(32, 4))
+        # else:
+        #     self.RCNN_bbox_pred = nn.Sequential(nn.Linear(2048, 32), \
+        #                                         nn.ReLU(), \
+        #                                         nn.Linear(32, 4 * self.n_classes))
 
         # freeze the resnet backbone during training
         for p in self.RCNN_base[0].parameters(): p.requires_grad = False

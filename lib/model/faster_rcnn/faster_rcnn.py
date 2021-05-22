@@ -185,6 +185,10 @@ class _fasterRCNN(nn.Module):
         normal_init(self.RCNN_rpn.RPN_bbox_pred, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_bbox_pred, 0, 0.001, cfg.TRAIN.TRUNCATED)
+        # normal_init(self.RCNN_cls_score[0], 0, 0.01, cfg.TRAIN.TRUNCATED)
+        # normal_init(self.RCNN_cls_score[2], 0, 0.01, cfg.TRAIN.TRUNCATED)
+        # normal_init(self.RCNN_bbox_pred[0], 0, 0.001, cfg.TRAIN.TRUNCATED)
+        # normal_init(self.RCNN_bbox_pred[2], 0, 0.001, cfg.TRAIN.TRUNCATED)
 
 
     def create_architecture(self):
