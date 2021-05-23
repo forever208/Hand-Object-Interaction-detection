@@ -11,7 +11,7 @@ from easydict import EasyDict as edict
 __C = edict()
 # Consumers can get config by:
 #   from fast_rcnn_config import cfg
-POOLING_MODEcfg = __C
+cfg = __C
 
 #
 # Training options
