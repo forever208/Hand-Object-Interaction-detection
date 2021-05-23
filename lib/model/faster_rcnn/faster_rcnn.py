@@ -38,7 +38,7 @@ class _fasterRCNN(nn.Module):
         # ROIPooling or ROIAlign layer
         self.RCNN_roi_pool = ROIPool((cfg.POOLING_SIZE, cfg.POOLING_SIZE), 1.0/16.0)
         self.RCNN_roi_align = ROIAlign((cfg.POOLING_SIZE, cfg.POOLING_SIZE), 1.0/16.0, 0)
-        self.RCNN_roi_align_hoi = ROIAlign((9, cfg.POOLING_SIZE), 1.0 / 16.0, 0)
+        self.RCNN_roi_align_hoi = ROIAlign((9, 9), 1.0 / 16.0, 0)
 
         # new layer
         self.extension_layer = extension_layers.extension_layer()
@@ -111,9 +111,6 @@ class _fasterRCNN(nn.Module):
         pooled_feat = self._head_to_tail(pooled_feat)    # _head_to_tail() is defined in the child class (resnet)
         pooled_feat_padded = self._head_to_tail(pooled_feat_padded)
         pooled_feat_padded_hoi = self._head_to_tail(pooled_feat_padded_hoi)
-        print('======================')
-        print('pooled_feat_padded_hoi size: ', pooled_feat_padded_hoi.size())
-        print('pooled_feat_padded_hoi: ', pooled_feat_padded_hoi)
 
         # 5. 2D feature tensor (128, 2048) --> get bbox predictions
         bbox_pred = self.RCNN_bbox_pred(pooled_feat_padded_hoi)    # RCNN_bbox_pred() is defined in the child class (resnet)
