@@ -153,7 +153,7 @@ if __name__ == '__main__':
     else:
         raise Exception("we currently only support pascal_voc dataset")
 
-    # configuration
+    # load yml file for configuration parameters
     args.cfg_file = 'cfgs/{}_ls.yml'.format(args.net) if args.large_scale else 'cfgs/{}.yml'.format(args.net)
     if args.cfg_file is not None:
         cfg_from_file(args.cfg_file)
