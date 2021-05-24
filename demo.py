@@ -91,7 +91,7 @@ def parse_args():
                       default=8, type=int)
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
-                      default=89999, type=int, required=True)
+                      default=89999, type=int)
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
                       default=1, type=int)
@@ -369,8 +369,10 @@ if __name__ == '__main__':
                 hand_dets = cls_dets.cpu().numpy()
               
         if vis:
-          # visualization
-          im2show = vis_detections_filtered_objects_PIL(im2show, obj_dets, hand_dets, thresh_hand, thresh_obj)
+            print("vis")
+            # visualization
+            #                                            cv2   numpye格式
+            im2show = vis_detections_filtered_objects_PIL(im2show, obj_dets, hand_dets, thresh_hand, thresh_obj)
 
         misc_toc = time.time()
         nms_time = misc_toc - misc_tic

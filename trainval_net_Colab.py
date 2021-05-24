@@ -107,7 +107,7 @@ def parse_args():
     # save model and log
     parser.add_argument('--model_name',
                         help='directory to save trained models',
-                        required=True, type=str)
+                        default="handobj_100K", type=str)
     parser.add_argument('--log_name',
                         help='directory to save training logs', type=str)
 

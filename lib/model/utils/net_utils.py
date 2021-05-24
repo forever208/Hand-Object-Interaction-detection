@@ -91,20 +91,24 @@ def vis_detections_filtered_objects(im, obj_dets, hand_dets, thresh=0.8):
                     obj_cc, hand_cc =  calculate_center(obj_dets[img_obj_id[i],:4]), calculate_center(bbox)
                     cv2.line(im, (int(obj_cc[0]), int(obj_cc[1])), (int(hand_cc[0]), int(hand_cc[1])), (0, 204, 0))
     elif hand_dets is not None:
-        im = vis_detections(im, 'hand', hand_dets, thresh)
+        im = vis_detections(fra, 'hand', hand_dets, thresh)
     return im
 
 
 
-def vis_detections_filtered_objects_PIL(im, obj_dets, hand_dets, thresh_hand=0.8, thresh_obj=0.01, font_path='lib/model/utils/times_b.ttf'):
+def vis_detections_filtered_objects_PIL(frame, im, obj_dets, hand_dets, thresh_hand=0.8, thresh_obj=0.01, font_path='lib/model/utils/times_b.ttf'):
 
     # convert to PIL
-    im = im[:,:,::-1]
-    image = Image.fromarray(im).convert("RGBA")
-    draw = ImageDraw.Draw(image)
-    font = ImageFont.truetype(font_path, size=30)
-    width, height = image.size 
-
+    im = im[:,:,::-1]# 把BGR转化为RGB
+    image = frame # cv格式
+    #draw = ImageDraw.Draw(image)
+    #font = ImageFont.truetype(font_path, size=30)
+    #width, height = image.size
+    side_map = {'l': 'Left', 'r': 'Right'}
+    side_map2 = {0: 'Left', 1: 'Right'}
+    side_map3 = {0: 'L', 1: 'R'}
+    state_map = {0: 'No Contact', 1: 'Self Contact', 2: 'Another Person', 3: 'Portable Object', 4: 'Stationary Object'}
+    state_map2 = {0: 'N', 1: 'S', 2: 'O', 3: 'P', 4: 'F'}
     if (obj_dets is not None) and (hand_dets is not None):
         img_obj_id = filter_object(obj_dets, hand_dets)
         for obj_idx, i in enumerate(range(np.minimum(10, obj_dets.shape[0]))):
@@ -112,8 +116,10 @@ def vis_detections_filtered_objects_PIL(im, obj_dets, hand_dets, thresh_hand=0.8
             score = obj_dets[i, 4]
             if score > thresh_obj and i in img_obj_id:
                 # viz obj by PIL
-                image = draw_obj_mask(image, draw, obj_idx, bbox, score, width, height, font)
-
+                #image = draw_obj_mask(image, draw, obj_idx, bbox, score, width, height, font)
+                cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 255), 4)  # 用矩形圈出物体
+                cv2.rectangle(image, (bbox[0], max(0, bbox[1]-35)), (bbox[0]+32, max(0, bbox[1]-30)+30), (0, 255, 255), 4)# 用矩形圈出文本框
+                cv2.putText(image, f'O', (bbox[0]+5, max(0, bbox[1]-30)+25),cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 2) #显示物体的类别
         for hand_idx, i in enumerate(range(np.minimum(10, hand_dets.shape[0]))):
             bbox = list(int(np.round(x)) for x in hand_dets[i, :4])
             score = hand_dets[i, 4]
@@ -121,41 +127,65 @@ def vis_detections_filtered_objects_PIL(im, obj_dets, hand_dets, thresh_hand=0.8
             state = hand_dets[i, 5]
             if score > thresh_hand:
                 # viz hand by PIL
-                image = draw_hand_mask(image, draw, hand_idx, bbox, score, lr, state, width, height, font)
+                #image = draw_hand_mask(image, draw, hand_idx, bbox, score, lr, state, width, height, font)
+                if lr == 0:
+                    rgb = (255,0,0)
+                elif lr == 1:
+                    rgb = (0,0,255)
+                cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), rgb,
+                              4)  # 用矩形圈出手
+                cv2.rectangle(image, (bbox[0], max(0, bbox[1] - 35)),
+                              (bbox[0] + 75, max(0, bbox[1] - 30) + 30), rgb, 4)  # 用矩形圈出文本框
+                cv2.putText(image, f'{side_map3[int(float(lr))]}-{state_map2[int(float(state))]}', (bbox[0] + 5, max(0, bbox[1] - 5 - 2)), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                            (0, 0, 0), 2)  # 显示物体的类别
 
                 if state > 0: # in contact hand
 
                     obj_cc, hand_cc =  calculate_center(obj_dets[img_obj_id[i],:4]), calculate_center(bbox)
                     # viz line by PIL
-                    if lr == 0:
-                        side_idx = 0
-                    elif lr == 1:
-                        side_idx = 1
-                    draw_line_point(draw, side_idx, (int(hand_cc[0]), int(hand_cc[1])), (int(obj_cc[0]), int(obj_cc[1])))
+                    #draw_line_point(draw, side_idx, (int(hand_cc[0]), int(hand_cc[1])), (int(obj_cc[0]), int(obj_cc[1])))
+                    cv2.line(image, (int(hand_cc[0]), int(hand_cc[1])), (int(obj_cc[0]), int(obj_cc[1])), rgb, 4)
 
 
-        
+
 
     elif hand_dets is not None:
-        image = vis_detections_PIL(im, 'hand', hand_dets, thresh_hand, font_path)
+        image = vis_detections_PIL(image, 'hand', hand_dets, thresh_hand, font_path)
         
     return image
 
-def vis_detections_PIL(im, class_name, dets, thresh=0.8, font_path='lib/model/utils/times_b.ttf'):
+def vis_detections_PIL(image, class_name, dets, thresh=0.8, font_path='lib/model/utils/times_b.ttf'):
     """Visual debugging of detections."""
     
-    image = Image.fromarray(im).convert("RGBA")
-    draw = ImageDraw.Draw(image)
-    font = ImageFont.truetype(font_path, size=30)
-    width, height = image.size
+    # image = Image.fromarray(im).convert("RGBA")
+    # draw = ImageDraw.Draw(image)
+    # font = ImageFont.truetype(font_path, size=30)
+    # width, height = image.size
     
     for hand_idx, i in enumerate(range(np.minimum(10, dets.shape[0]))):
         bbox = list(int(np.round(x)) for x in dets[i, :4])
         score = dets[i, 4]
         lr = dets[i, -1]
         state = dets[i, 5]
+        side_map = {'l': 'Left', 'r': 'Right'}
+        side_map2 = {0: 'Left', 1: 'Right'}
+        side_map3 = {0: 'L', 1: 'R'}
+        state_map = {0: 'No Contact', 1: 'Self Contact', 2: 'Another Person', 3: 'Portable Object',
+                     4: 'Stationary Object'}
+        state_map2 = {0: 'N', 1: 'S', 2: 'O', 3: 'P', 4: 'F'}
         if score > thresh:
-            image = draw_hand_mask(image, draw, hand_idx, bbox, score, lr, state, width, height, font)
+            # image = draw_hand_mask(image, draw, hand_idx, bbox, score, lr, state, width, height, font)
+            if lr == 0:
+                rgb = (255, 0, 0)
+            elif lr == 1:
+                rgb = (0, 0, 255)
+            cv2.rectangle(image, (hand_dets[0], hand_dets[1]), (hand_dets[2], hand_dets[3]), rgb,
+                          4)  # 用矩形圈出手
+            cv2.rectangle(image, (hand_dets[0], max(0, hand_dets[1] - 35)),
+                          (hand_dets[0] + 75, max(0, hand_dets[1] - 30) + 30), rgb, 4)  # 用矩形圈出文本框
+            cv2.putText(image, f'{side_map3[int(float(lr))]}-{state_map2[int(float(state))]}',
+                        (hand_dets[0] + 6, max(0, hand_dets[1] - 5 - 2)), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (0, 0, 0), 2)  # 显示物体的类别
             
     return image
 

@@ -10,7 +10,7 @@ from datasets.factory import get_imdb
 import PIL
 
 
-"""one example of roidb (labels):"""
+"""one example of roidb (labels):""" """背景的类别分数是多少？？？"""
 #    {'boxes': array([[  3, 446, 317, 675], [275, 425, 524, 632], [  3, 250, 182, 479], [ 21, 526, 810, 714]], dtype=uint16),
 #     'gt_classes': array([2, 2, 1, 1], dtype=int32),
 #     'gt_ishard': array([0, 0, 0, 0], dtype=int32),
@@ -52,8 +52,8 @@ def prepare_roidb(imdb):
         max_overlaps = gt_overlaps.max(axis=1)
         # gt class that had the max overlap
         max_classes = gt_overlaps.argmax(axis=1)
-        roidb[i]['max_classes'] = max_classes
-        roidb[i]['max_overlaps'] = max_overlaps
+        roidb[i]['max_classes'] = max_classes   #对应类别
+        roidb[i]['max_overlaps'] = max_overlaps #类别分数最大值
 
         # sanity checks
         # max overlap of 0 => class should be zero (background)
@@ -162,7 +162,7 @@ def combined_roidb(imdb_names, training=True, leftright=False):
         return roidb
 
 
-    roidbs = [get_roidb(s) for s in imdb_names.split('+')]
+    roidbs = [get_roidb(s) for s in imdb_names.split('+')] #没有+号？？？
     roidb = roidbs[0]
 
     if len(roidbs) > 1:
