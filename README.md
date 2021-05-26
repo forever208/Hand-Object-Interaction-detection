@@ -235,6 +235,13 @@ parameter setting
   - lr_start = 1e-3, lr_end = 1e-5
   - lr_decay_epoch = 3, epochs = 10
 
+| Network Variants                              | Hand  | Target | Hand +  Side | Hand +  Contact state | Hand +  Target | All   |
+|-----------------------------------------------|-------|--------|--------------|-----------------------|----------------|-------|
+| Base model - HOI detector                     | 81.35 | 52.61  | 68.51        | 55.50                 | 30.85          | 28.18 |
+| Add 1 FC layer in contact state branch        | 81.33 | 52.25  | 68.41        | 55.13                 | 30.41          | 27.46 |
+| Add 1 FC layer in Faster R-CNN head           | 81.19 | 52.13  | 68.92        | 54.52                 | 30.96          | 27.65 |
+| Use dilated proposals to detect taget objects | 80.24 | 49.12  | 67.95        | 55.32                 | 29.37          | 22.70 |
+| Dilated proposals + 9*9 ROI pooling           | 81.32 | 54.65  | 69.11        | 55.46                 | 31.67          | 29.19 |
 
 
 
