@@ -209,11 +209,11 @@ parameter setting
   - lr_start = 1e-3, lr_end = 1e-6
   - lr_decay_epoch = 3, epochs = 10
 
-| Backbone  | Hand  | Target | Hand + <br>Side | Hand + <br>Contact State | Hand + <br>Target | Hand + <br>All | Model link     |
+| Backbone  | Hand  | Target | Hand + <br>Side | Hand + <br>Contact State | Hand + <br>Target | Hand + <br>All | FPS-Tesla v100|
 |-----------|-------|--------|-----------------|--------------------------|-------------------|----------------|----------------|
-| ResNet50  | 80.86 | 46.60  | 67.14           | 52.32                    | 26.91             | 20.90          | 1_10_19694.pth |
-| ResNet101 | 81.35 | 52.61  | 68.51           | 55.50                    | 30.85             | 28.18          | 1_10_19694.pth |
-| ResNet152 | 81.36 | 55.39  | 76.11           | 61.88                    | 37.90             | 29.95          | 1_9_19694.pth  |
+| ResNet50  | 80.86 | 46.60  | 67.14           | 52.32                    | 26.91             | 20.90          | 22.2 |
+| ResNet101 | 81.35 | 52.61  | 68.51           | 55.50                    | 30.85             | 28.18          | 18.2 |
+| ResNet152 | 81.36 | 55.39  | 76.11           | 61.88                    | 37.90             | 29.95          | 15.8 |
 
 
 ### Comparison of learning schedule
@@ -228,7 +228,7 @@ share the common learning rate for the first and last epoch (lr_start = 1e-3, lr
 | decay_epoch = 3<br>epochs = 10 | 81.35 | 52.61  | 68.51           | 55.50                    | 30.85             | 28.18          |
 
 
-### Comparison of network optimisation
+### Comparison of network variants
 
 parameter setting
   - ResNet101 as the backbone
