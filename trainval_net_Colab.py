@@ -143,7 +143,7 @@ class sampler(Sampler):
 if __name__ == '__main__':
     # command arguments
     args = parse_args()
-    print('Called with args:')
+    print('Using the args:')
     print(args)
 
     if args.dataset == 'pascal_voc':
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     else:
         raise Exception("we currently only support pascal_voc dataset")
 
-    # configuration
+    # load configuration file
     args.cfg_file = 'cfgs/{}_ls.yml'.format(args.net) if args.large_scale else 'cfgs/{}.yml'.format(args.net)
     if args.cfg_file is not None:
         cfg_from_file(args.cfg_file)
@@ -192,7 +192,7 @@ if __name__ == '__main__':
     gt_boxes = torch.FloatTensor(1).to(device)
     box_info = torch.FloatTensor(1).to(device)    # ground truth link info between hand-object
 
-    # initialize the network.
+    # build up the network.
     if args.net == 'res101':
         fasterRCNN = resnet(imdb.classes, 101, pretrained=True, class_agnostic=args.class_agnostic)
     elif args.net == 'res50':
@@ -201,6 +201,7 @@ if __name__ == '__main__':
         fasterRCNN = resnet(imdb.classes, 152, pretrained=True, class_agnostic=args.class_agnostic)
     else:
         raise Exception("network is not defined")
+    # initialize the weights
     fasterRCNN.create_architecture()
 
     # set optimizer
@@ -336,8 +337,7 @@ if __name__ == '__main__':
                         'loss_hand_dydx': loss_hand_dydx,
                         'loss_hand_lr': loss_hand_lr
                     }
-                    logger.add_scalars("logs_s_{}/losses".format(args.session), info,
-                                       (epoch - 1) * iters_per_epoch + step)
+                    logger.add_scalars("logs_s_{}/losses".format(args.session), info, (epoch-1) * iters_per_epoch + step)
 
                 loss_temp = 0
                 start = time.time()
