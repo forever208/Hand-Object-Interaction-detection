@@ -20,7 +20,8 @@ import pdb
 
 class _ProposalTargetLayer(nn.Module):
     """
-    Produces proposal classification labels and bounding-box regression targets.
+    Given 2000 proposals, randomly select 128 proposals whose IOU with gt bboxes are >= Threshold
+    generate the 128 gt labels for final RCNN output
     """
 
     def __init__(self, nclasses):
@@ -33,12 +34,18 @@ class _ProposalTargetLayer(nn.Module):
 
     def forward(self, all_rois, gt_boxes, num_boxes, box_info):
         """
-
         :param all_rois: 3D tensor (batch, 2000, 5), each row is a proposal bbox [batch_ind, x1, y1, x2, y2]
         :param gt_boxes: 3D tensor (batch, num_boxes, 5), each row is [x1, y1, x2, y2, cls]
         :param num_boxes: 2D tensor (batch, 1), default as 20
         :param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
         :return:
+            rois: 128 proposals bbox coordinate, 3D tensor (batch, 128, 5), each row: [batch_ind, x1, y1, x2, y2]
+            labels: class labels 2D tensor (batch, 128)
+            bbox_targets: 128 gt bbox labels, 3D tensor (batch, 128, 4)
+            bbox_inside_weights: 0/1 array, assign fg bbox with 1 for computing bbox loss, 3D tensor (batch, 128, 4)
+            bbox_outside_weights: the same with bbox_inside_weights, 3D tensor (batch, 128, 4)
+            info_batch: contact gt labels, 3D tensor (batch, 128, 5)
+
         """
         self.BBOX_NORMALIZE_MEANS = self.BBOX_NORMALIZE_MEANS.type_as(gt_boxes)
         self.BBOX_NORMALIZE_STDS = self.BBOX_NORMALIZE_STDS.type_as(gt_boxes)
@@ -49,12 +56,12 @@ class _ProposalTargetLayer(nn.Module):
 
         """
         concate the max 20 gt bboxes into the 2000 proposals as new proposals
-        why: easy the problem of unbalance between positives and negatives (too much negatives in 2000 proposals)
+        why: ease the problem of unbalance between positives and negatives (too much negatives in 2000 proposals)
              at the early training stage, there might be 0 positve proposal, thus it is hard to train
         """
         all_rois = torch.cat([all_rois, gt_boxes_append], 1)    # (batch, 2000+num_boxes, 5)
         rois_per_image = int(cfg.TRAIN.BATCH_SIZE)    # 128
-        fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))    # 128/4 = max 32 positive proposals
+        fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))    # 128*0.25 = max 32 positive proposals
         fg_rois_per_image = 1 if fg_rois_per_image == 0 else fg_rois_per_image
 
         # Select 128 proposals based on IOU between gt box and proposal, generate corresponding labels
@@ -129,20 +136,27 @@ class _ProposalTargetLayer(nn.Module):
     def _sample_rois_pytorch(self, all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_classes, box_info):
         """
         Generate a random sample of RoIs comprising foreground and background examples.
-        :param all_rois: 2000 proposal boxes + gt boxes, 3D tensor (batch, 2000+num_boxes, 5)
+        :param all_rois: 2000 proposal boxes + gt boxes, 3D tensor (batch, 2000+num_boxes, 5), each row [batch_ind, x1, y1, x2, y2]
         :param gt_boxes: 3D tensor (batch, num_boxes, 5), each row is [x1, y1, x2, y2, cls]
         :param fg_rois_per_image: 32
         :param rois_per_image: 128
         :param num_classes: 3
-        :param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
+        :param box_info: gt contact labels, 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
         :return:
+            labels_batch: class labels 2D tensor (batch, 128)
+            rois_batch: 128 proposals bbox coordinate, 3D tensor (batch, 128, 5), each row: [batch_ind, x1, y1, x2, y2]
+            bbox_targets: 128 gt bbox labels, 3D tensor (batch, 128, 4)
+            bbox_inside_weights: 0/1 array, assign fg bbox with 1 for computing bbox loss, 3D tensor (batch, 128, 4)
+            info_batch: contact labels, 3D tensor (batch, 128, 5)
         """
 
-        # 3D tensor (batch, 2000+20, 20) of overlap ratio between gt boxes and proposal anchor
+        # if num_boxes=20:
+        # 3D tensor (batch, 2000+20, 20), overlap ratio between gt boxes and proposal anchor
         overlaps = bbox_overlaps_batch(all_rois, gt_boxes)
 
-        # max_overlaps: (batch, 2000+20), the max overlap ratio
-        # gt_assignment: (batch, 2000+20), the index of the max overlap ratio
+        # max_overlaps: (batch, 2000+20), the max overlap ratio for each proposal
+        # gt_assignment: (batch, 2000+20), the index of the max overlap ratio (e.g the proposal has max overlap with 9th gt)
+        # note that, currently each proposal is assigned with the gt box, need to set bg proposals to 0 later
         max_overlaps, gt_assignment = torch.max(overlaps, 2)
 
         batch_size = overlaps.size(0)
@@ -151,12 +165,13 @@ class _ProposalTargetLayer(nn.Module):
 
         offset = torch.arange(0, batch_size) * gt_boxes.size(1)    # [0, 20, 40, 60] if batch=4
 
-        # offset: (batch, 2000+20), the index of the max overlap ratio
+        # offset: (batch, 2000+20), the index of the max overlap ratio, new_ind = ind + offset
         offset = offset.view(-1, 1).type_as(gt_assignment) + gt_assignment
 
-        # changed indexing way for pytorch 1.0
-        # choose class labels for 2020 proposal bboxes
+        # assign class labels for 2020 proposal bboxes based on the cls index
         labels = gt_boxes[:, :, 4].contiguous().view(-1)[(offset.view(-1),)].view(batch_size, -1)    # (batch, 2000+20)
+
+        # assign contact labels for 2020 proposal bboxes based on the cls index
         list_box = []
         for i in range(batch_size):
             # # solve the bug when batch > 1
@@ -164,19 +179,24 @@ class _ProposalTargetLayer(nn.Module):
             # list_box.append(link_label_i[(offset[i, :].view(-1),)])
 
             list_box.append(box_info[i][(offset[i, :].view(-1),)])
-        boxes_info = torch.stack(list_box)
+        boxes_info = torch.stack(list_box)    # 3D tensor (batch, 2020, 5)
 
-        labels_batch = labels.new(batch_size, rois_per_image).zero_()
-        info_batch = boxes_info.new(batch_size, rois_per_image, 5).zero_()
-        rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
-        gt_rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
+        """best solution to solve the bug when batch > 1)"""
+        # boxes_info = box_info.contiguous().view(-1, 5)[offset.view(-1)].view(batch_size, -1, 5)
 
-        # Guard against the case when an image has fewer than max_fg_rois_per_image foreground RoIs
+        # initialise the best 128 proposals
+        labels_batch = labels.new(batch_size, rois_per_image).zero_()    # (batch, 128)
+        info_batch = boxes_info.new(batch_size, rois_per_image, 5).zero_()    # (batch, 128, 5)
+        rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()    # (batch, 128, 5)
+        gt_rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()    # (batch, 128, 5)
+
+        # randomly select 128 proposals whose IOU>=Threshold for each image
         for i in range(batch_size):
+            # find the index of fg proposals according to the IOU threshold
             fg_inds = torch.nonzero(max_overlaps[i] >= cfg.TRAIN.FG_THRESH).view(-1)
             fg_num_rois = fg_inds.numel()
 
-            # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
+            # find the index of bg proposals according to the IOU threshold: [BG_THRESH_LO, BG_THRESH_HI)
             bg_inds = torch.nonzero((max_overlaps[i] < cfg.TRAIN.BG_THRESH_HI) &
                                     (max_overlaps[i] >= cfg.TRAIN.BG_THRESH_LO)).view(-1)
             bg_num_rois = bg_inds.numel()
@@ -189,55 +209,50 @@ class _ProposalTargetLayer(nn.Module):
                 # See https://github.com/pytorch/pytorch/issues/1868 for more details.
                 # use numpy instead.
                 # rand_num = torch.randperm(fg_num_rois).long().cuda()
+
+                # randomly select <= 32 fg proposals for training, rather than selecting the high IOU proposals
                 rand_num = torch.from_numpy(np.random.permutation(fg_num_rois)).type_as(gt_boxes).long()
                 fg_inds = fg_inds[rand_num[:fg_rois_per_this_image]]
 
-                # sampling bg
+                # randomly select bg proposals for training
                 bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
-
-                # Seems torch.rand has a bug, it will generate very large number and make an error.
-                # We use numpy rand instead.
-                # rand_num = (torch.rand(bg_rois_per_this_image) * bg_num_rois).long().cuda()
                 rand_num = np.floor(np.random.rand(bg_rois_per_this_image) * bg_num_rois)
                 rand_num = torch.from_numpy(rand_num).type_as(gt_boxes).long()
                 bg_inds = bg_inds[rand_num]
 
             elif fg_num_rois > 0 and bg_num_rois == 0:
-                # sampling fg
-                # rand_num = torch.floor(torch.rand(rois_per_image) * fg_num_rois).long().cuda()
+                # randomly select 128 fg proposals for training
                 rand_num = np.floor(np.random.rand(rois_per_image) * fg_num_rois)
                 rand_num = torch.from_numpy(rand_num).type_as(gt_boxes).long()
                 fg_inds = fg_inds[rand_num]
                 fg_rois_per_this_image = rois_per_image
                 bg_rois_per_this_image = 0
+
             elif bg_num_rois > 0 and fg_num_rois == 0:
-                # sampling bg
-                # rand_num = torch.floor(torch.rand(rois_per_image) * bg_num_rois).long().cuda()
+                # randomly select 128 bg proposals for training
                 rand_num = np.floor(np.random.rand(rois_per_image) * bg_num_rois)
                 rand_num = torch.from_numpy(rand_num).type_as(gt_boxes).long()
-
                 bg_inds = bg_inds[rand_num]
                 bg_rois_per_this_image = rois_per_image
                 fg_rois_per_this_image = 0
+
             else:
                 raise ValueError("bg_num_rois = 0 and fg_num_rois = 0, this should not happen!")
 
-            # The indices that we're selecting (both fg and bg)
-            keep_inds = torch.cat([fg_inds, bg_inds], 0)
+            # The indices of selected 128 proposals from 2020 proposals
+            keep_inds = torch.cat([fg_inds, bg_inds], 0)    # 1D tensor (128)
 
-            # Select sampled values from various arrays:
-            labels_batch[i].copy_(labels[i][keep_inds])
-            # print(info_batch[i].shape, box_info[i].shape)
-            # exit()
-            info_batch[i].copy_(boxes_info[i][keep_inds, :])
+            # Select 128 labels from 2020 labels (but bg proposals are still labelled as non-zero)
+            labels_batch[i].copy_(labels[i][keep_inds])    # class labels
+            info_batch[i].copy_(boxes_info[i][keep_inds, :])    # contact labels
 
-            # Clamp labels for the background RoIs to 0
+            # must set the labels of background proposals to 0
             if fg_rois_per_this_image < rois_per_image:
                 labels_batch[i][fg_rois_per_this_image:] = 0
                 info_batch[i][fg_rois_per_this_image:, :] = 0
 
             rois_batch[i] = all_rois[i][keep_inds]
-            rois_batch[i, :, 0] = i
+            rois_batch[i, :, 0] = i    # 3D tensor (batch, 128, 5), each row: [batch_ind, x1, y1, x2, y2]
 
             gt_rois_batch[i] = gt_boxes[i][gt_assignment[i][keep_inds]]
 

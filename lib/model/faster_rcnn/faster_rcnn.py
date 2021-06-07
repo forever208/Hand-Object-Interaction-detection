@@ -70,10 +70,10 @@ class _fasterRCNN(nn.Module):
         if self.training:    # self.training is a class attribute in nn.module
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes, box_info)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws, box_info = roi_data
-            rois_label_retain = Variable(rois_label.long())
-            box_info = Variable(box_info)
-            rois_label = Variable(rois_label.view(-1).long())
-            rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
+            rois_label_retain = Variable(rois_label.long())    # proposal bbox coordinate, 3D tensor (batch, 128, 5)
+            box_info = Variable(box_info)    # contact gt labels, 3D tensor (batch, 128, 5)
+            rois_label = Variable(rois_label.view(-1).long())    # class labels 2D tensor (batch, 128)
+            rois_target = Variable(rois_target.view(-1, rois_target.size(2)))    # gt bbox labels, 3D tensor (batch, 128, 4)
             rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
             rois_outside_ws = Variable(rois_outside_ws.view(-1, rois_outside_ws.size(2)))
         else:
@@ -85,7 +85,7 @@ class _fasterRCNN(nn.Module):
             rpn_loss_cls = 0
             rpn_loss_bbox = 0
 
-        # 128 proposal bboxes, 3D tensor (batch, 128, 5)
+        # 128 proposals bbox coordinate, 3D tensor (batch, 128, 5), each row: [batch_ind, x1, y1, x2, y2]
         rois = Variable(rois)
         # expand the size of each bbox by 0.3*2 times
         rois_padded = Variable(self.enlarge_bbox(im_info, rois, 0.3))
@@ -159,7 +159,7 @@ class _fasterRCNN(nn.Module):
         rois_padded[:, :, 3] = rois_padded[:, :, 3] + ratio * rois_width    # x2 + 0.5*width
         rois_padded[:, :, 4] = rois_padded[:, :, 4] + ratio * rois_height    # y2 + 0.5*height
 
-        # # fix the bug when batch > 1
+        """fix the bug when batch > 1"""
         # for i in range(rois_padded.size(0)):
         #     rois_padded[i, :, 3][rois_padded[i, :, 3] > im_info[i, 1]] = im_info[i, 1]    # reset x2 if it exceed the boundary
         #     rois_padded[i, :, 4][rois_padded[i, :, 4] > im_info[i, 0]] = im_info[i, 0]    # reset y2 if it exceed the boundary
