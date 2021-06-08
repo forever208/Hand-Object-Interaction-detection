@@ -258,9 +258,10 @@ if __name__ == '__main__':
         start = time.time()
 
         # lr=0.1*lr for every 3 epochs
-        if epoch % (args.lr_decay_step + 1) == 0:
-            adjust_learning_rate(optimizer, args.lr_decay_gamma)
-            lr *= args.lr_decay_gamma
+        if epoch != 1:
+            if (epoch - 1) % (args.lr_decay_step) == 0:
+                adjust_learning_rate(optimizer, args.lr_decay_gamma)
+                lr *= args.lr_decay_gamma
 
         # load a batch of images
         data_iter = iter(dataloader)
