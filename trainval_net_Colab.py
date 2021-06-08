@@ -177,7 +177,7 @@ if __name__ == '__main__':
     sampler_batch = sampler(train_size, args.batch_size)
     dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, imdb.num_classes, training=True)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                                             sampler=sampler_batch, num_workers=args.num_workers)
+                                             sampler=sampler_batch, num_workers=args.num_workers, pin_memory=True)
 
     # output path of the trained model
     output_dir = args.save_dir + "/" + args.net + "_" + args.model_name + "/" + args.dataset
