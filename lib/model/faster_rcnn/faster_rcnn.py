@@ -70,10 +70,10 @@ class _fasterRCNN(nn.Module):
         if self.training:    # self.training is a class attribute in nn.module
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes, box_info)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws, box_info = roi_data
-            rois_label_retain = Variable(rois_label.long())    # proposal bbox coordinate, 3D tensor (batch, 128, 5)
+            rois_label_retain = Variable(rois_label.long())    # class labels 2D tensor (batch, 128)
             box_info = Variable(box_info)    # contact gt labels, 3D tensor (batch, 128, 5)
-            rois_label = Variable(rois_label.view(-1).long())    # class labels 2D tensor (batch, 128)
-            rois_target = Variable(rois_target.view(-1, rois_target.size(2)))    # gt bbox labels, 3D tensor (batch, 128, 4)
+            rois_label = Variable(rois_label.view(-1).long())    # class labels 1D tensor (batch*128)
+            rois_target = Variable(rois_target.view(-1, rois_target.size(2)))    # gt bbox labels, 2D tensor (batch, 128*4)
             rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
             rois_outside_ws = Variable(rois_outside_ws.view(-1, rois_outside_ws.size(2)))
         else:
@@ -123,7 +123,7 @@ class _fasterRCNN(nn.Module):
         # object_feat = pooled_feat[rois_label==1,:]
         # result = self.lineartrial(object_feat)
 
-        # 5. loss function
+        # 6. loss function
         RCNN_loss_cls = 0
         RCNN_loss_bbox = 0
         loss_list = []
@@ -131,7 +131,6 @@ class _fasterRCNN(nn.Module):
         if self.training:
             RCNN_loss_cls = F.cross_entropy(cls_score, rois_label)    # classification loss
             RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)    # bbox regression L1 loss
-            # prediction and loss of auxiliary layer
             loss_list = self.extension_layer(pooled_feat, pooled_feat_padded, rois_label_retain, box_info)
         else:
             loss_list = self.extension_layer(pooled_feat, pooled_feat_padded, None, box_info)
@@ -160,12 +159,12 @@ class _fasterRCNN(nn.Module):
         rois_padded[:, :, 4] = rois_padded[:, :, 4] + ratio * rois_height    # y2 + 0.5*height
 
         """fix the bug when batch > 1"""
-        # for i in range(rois_padded.size(0)):
-        #     rois_padded[i, :, 3][rois_padded[i, :, 3] > im_info[i, 1]] = im_info[i, 1]    # reset x2 if it exceed the boundary
-        #     rois_padded[i, :, 4][rois_padded[i, :, 4] > im_info[i, 0]] = im_info[i, 0]    # reset y2 if it exceed the boundary
+        for i in range(rois_padded.size(0)):
+            rois_padded[i, :, 3][rois_padded[i, :, 3] > im_info[i, 1]] = im_info[i, 1]    # reset x2 if it exceed the boundary
+            rois_padded[i, :, 4][rois_padded[i, :, 4] > im_info[i, 0]] = im_info[i, 0]    # reset y2 if it exceed the boundary
 
-        rois_padded[:, :, 3][rois_padded[:, :, 3] > im_info[:, 0]] = im_info[:, 0]
-        rois_padded[:, :, 4][rois_padded[:, :, 4] > im_info[:, 1]] = im_info[:, 1]
+        # rois_padded[:, :, 3][rois_padded[:, :, 3] > im_info[:, 0]] = im_info[:, 0]
+        # rois_padded[:, :, 4][rois_padded[:, :, 4] > im_info[:, 1]] = im_info[:, 1]
         return rois_padded
 
 
