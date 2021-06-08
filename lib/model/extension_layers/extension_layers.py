@@ -20,19 +20,19 @@ class extension_layer(nn.Module):
         compute both predictions and loss for 3 branches (contact_state, link, hand_side)
         :param input: pooled_feat, 2D tensor (128*batch_size, 2048)
         :param input_padded: padded_pooled_feat, 2D tensor (128*batch_size, 2048)
-        :param roi_labels: object class labels, 2D tensor (batch, num_boxes)
+        :param roi_labels: object class labels, 2D tensor (batch, 128)
         :param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
         :return:
         """
 
-        batch_size = roi_labels.size(0)
-        num_proposals = cfg.TRAIN.BATCH_SIZE
-
-        # add the batch dimension if batch == 1
-        if (len(input.shape)) == 2:
+        if self.training:
+            batch_size = roi_labels.size(0)
+            num_proposals = cfg.TRAIN.BATCH_SIZE
             input = input.view(batch_size, num_proposals, -1)
-        if (len(input_padded.shape)) == 2:
             input_padded = input_padded.view(batch_size, num_proposals, -1)
+        else:
+            input = input.unsqueeze(0)
+            input_padded = input_padded.unsqueeze(0)
 
         # output the predictions and loss
         # loss_list: [(predictions, loss), (predictions, loss), (predictions, loss)]
@@ -71,8 +71,8 @@ class extension_layer(nn.Module):
     def hand_contactstate_part(self, input, roi_labels, box_info):
         """
         compute the prediction and loss for contact state
-        :param input: padded_pooled_feat, 3D tensor (batch, num_boxes, 2048)
-        :param roi_labels: object class labels, 2D tensor (batch, num_boxes)
+        :param input: padded_pooled_feat, 3D tensor (batch, 128, 2048)
+        :param roi_labels: object class labels, 2D tensor (batch, 128)
         :param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
         :return:
         """

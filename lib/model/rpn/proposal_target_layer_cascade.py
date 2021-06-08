@@ -181,7 +181,7 @@ class _ProposalTargetLayer(nn.Module):
         #     list_box.append(box_info[i][(offset[i, :].view(-1),)])
         # boxes_info = torch.stack(list_box)    # 3D tensor (batch, 2020, 5)
 
-        """best solution to solve the bug when batch > 1)"""
+        """best solution to solve the bug when batch > 1"""
         boxes_info = box_info.contiguous().view(-1, 5)[offset.view(-1)].view(batch_size, -1, 5)
 
         # initialise the best 128 proposals
