@@ -28,13 +28,13 @@ class extension_layer(nn.Module):
         if self.training:
             batch_size = roi_labels.size(0)
             num_proposals = cfg.TRAIN.BATCH_SIZE
-            input = input.view(batch_size, num_proposals, -1)
-            input_padded = input_padded.view(batch_size, num_proposals, -1)
+            input = input.view(batch_size, num_proposals, -1)    # ==> (batch, 128, 2048)
+            input_padded = input_padded.view(batch_size, num_proposals, -1)    # ==> (batch, 128, 2048)
         else:
             input = input.unsqueeze(0)
             input_padded = input_padded.unsqueeze(0)
 
-        # output the predictions and loss
+        # predictions and loss
         # loss_list: [(predictions, loss), (predictions, loss), (predictions, loss)]
         loss_list = [self.hand_contactstate_part(input_padded, roi_labels, box_info), \
                      self.hand_dxdymagnitude_part(input_padded, roi_labels, box_info), \
@@ -82,8 +82,8 @@ class extension_layer(nn.Module):
         if self.training:
             for i in range(input.size(0)):    # for each batch
                 gt_labels = box_info[i, :, 0]    # contact_state label
-                index = roi_labels[i] == 2    # get a True/False array
-                if index.sum() > 0:    # if there is a hand, add up the loss
+                index = roi_labels[i] == 2    # get a True/False array, True indicates a hand
+                if index.sum() > 0:    # if there is a hand, sum up the loss
                     contactstate_loss_sub = 0.1 * self.hand_contactstate_loss(contactstate_pred[i][index],
                                                                               gt_labels[index].long())
 
@@ -91,6 +91,8 @@ class extension_layer(nn.Module):
                         contactstate_loss = contactstate_loss_sub
                     else:
                         contactstate_loss += contactstate_loss_sub
+
+            contactstate_loss = contactstate_loss / input.size(0)
 
         return contactstate_pred, contactstate_loss
 
@@ -119,11 +121,12 @@ class extension_layer(nn.Module):
                 if index.sum() > 0:
                     dxdymagnitude_loss_sub = 0.1 * self.hand_dxdymagnitude_loss(dxdymagnitude_pred_norm[i][index],
                                                                                 gt_labels[index])
-
                     if not dxdymagnitude_loss:
                         dxdymagnitude_loss = dxdymagnitude_loss_sub
                     else:
                         dxdymagnitude_loss += dxdymagnitude_loss_sub
+
+            dxdymagnitude_loss = dxdymagnitude_loss / input.size(0)
 
         return dxdymagnitude_pred_norm, dxdymagnitude_loss
 
@@ -144,6 +147,7 @@ class extension_layer(nn.Module):
                         handside_loss = handside_loss_sub
                     else:
                         handside_loss += handside_loss_sub
+            handside_loss = handside_loss / input.size(0)
 
         return handside_pred, handside_loss
 

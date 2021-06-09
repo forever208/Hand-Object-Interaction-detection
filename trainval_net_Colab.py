@@ -281,7 +281,7 @@ if __name__ == '__main__':
             RCNN_loss_cls, RCNN_loss_bbox, \
             rois_label, loss_list = fasterRCNN(im_data, im_info, gt_boxes, num_boxes, box_info)
 
-            # compute loss
+            # compute loss (mean() works when using multi-GPUs)
             loss = rpn_loss_cls.mean() + rpn_loss_box.mean() + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean()
             for score_loss in loss_list:
                 if type(score_loss[1]) is not int:

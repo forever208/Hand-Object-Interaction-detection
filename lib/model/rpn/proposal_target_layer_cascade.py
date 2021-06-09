@@ -202,7 +202,6 @@ class _ProposalTargetLayer(nn.Module):
             bg_num_rois = bg_inds.numel()
 
             if fg_num_rois > 0 and bg_num_rois > 0:
-                # sampling fg
                 fg_rois_per_this_image = min(fg_rois_per_image, fg_num_rois)
 
                 # torch.randperm seems has a bug on multi-gpu setting that cause the segfault.
