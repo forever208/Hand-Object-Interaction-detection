@@ -284,8 +284,7 @@ if __name__ == '__main__':
             # compute loss (mean() works when using multi-GPUs)
             loss = rpn_loss_cls.mean() + rpn_loss_box.mean() + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean()
             for score_loss in loss_list:
-                if type(score_loss[1]) is not int:
-                    loss += score_loss[1].mean()    # auxiliary loss terms from auxiliary layers
+                loss += score_loss[1].mean()    # auxiliary loss terms from auxiliary layers
             loss_temp += loss.item()
 
             # back propagation and update weights
@@ -304,9 +303,9 @@ if __name__ == '__main__':
                     loss_rpn_box = rpn_loss_box.mean().item()
                     loss_rcnn_cls = RCNN_loss_cls.mean().item()
                     loss_rcnn_box = RCNN_loss_bbox.mean().item()
-                    loss_hand_state = 0 if type(loss_list[0][1]) is int else loss_list[0][1].mean().item()
-                    loss_hand_dydx = 0 if type(loss_list[1][1]) is int else loss_list[1][1].mean().item()
-                    loss_hand_lr = 0 if type(loss_list[2][1]) is int else loss_list[2][1].mean().item()
+                    loss_hand_state = loss_list[0][1].mean().item()
+                    loss_hand_dydx = loss_list[1][1].mean().item()
+                    loss_hand_lr = loss_list[2][1].mean().item()
                     fg_cnt = torch.sum(rois_label.data.ne(0))
                     bg_cnt = rois_label.data.numel() - fg_cnt
                 else:
@@ -314,9 +313,9 @@ if __name__ == '__main__':
                     loss_rpn_box = rpn_loss_box.item()
                     loss_rcnn_cls = RCNN_loss_cls.item()
                     loss_rcnn_box = RCNN_loss_bbox.item()
-                    loss_hand_state = 0 if type(loss_list[0][1]) is int else loss_list[0][1].item()
-                    loss_hand_dydx = 0 if type(loss_list[1][1]) is int else loss_list[1][1].item()
-                    loss_hand_lr = 0 if type(loss_list[2][1]) is int else loss_list[2][1].item()
+                    loss_hand_state = loss_list[0][1].item()
+                    loss_hand_dydx = loss_list[1][1].item()
+                    loss_hand_lr = loss_list[2][1].item()
                     fg_cnt = torch.sum(rois_label.data.ne(0))
                     bg_cnt = rois_label.data.numel() - fg_cnt
 

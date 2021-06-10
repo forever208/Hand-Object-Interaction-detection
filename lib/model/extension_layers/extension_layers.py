@@ -13,6 +13,7 @@ class extension_layer(nn.Module):
     def __init__(self):
         super(extension_layer, self).__init__()
         self.init_layers_weights()    # define the the layer and weights initialisation
+        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
     def forward(self, input, input_padded, roi_labels, box_info):
@@ -77,7 +78,7 @@ class extension_layer(nn.Module):
         :return:
         """
         contactstate_pred = self.hand_contact_state_layer(input)
-        contactstate_loss = 0
+        contactstate_loss = torch.zeros(1, dtype=torch.float).to(self.device)
 
         if self.training:
             for i in range(input.size(0)):    # for each batch
@@ -86,11 +87,7 @@ class extension_layer(nn.Module):
                 if index.sum() > 0:    # if there is a hand, sum up the loss
                     contactstate_loss_sub = 0.1 * self.hand_contactstate_loss(contactstate_pred[i][index],
                                                                               gt_labels[index].long())
-
-                    if not contactstate_loss:
-                        contactstate_loss = contactstate_loss_sub
-                    else:
-                        contactstate_loss += contactstate_loss_sub
+                    contactstate_loss += contactstate_loss_sub
 
             contactstate_loss = contactstate_loss / input.size(0)
 
@@ -110,7 +107,7 @@ class extension_layer(nn.Module):
         dxdymagnitude_pred_sub = 0.1 * F.normalize(dxdymagnitude_pred[:, :, 1:], p=2, dim=2)
 
         dxdymagnitude_pred_norm = torch.cat([dxdymagnitude_pred[:, :, 0].unsqueeze(-1), dxdymagnitude_pred_sub], dim=2)
-        dxdymagnitude_loss = 0
+        dxdymagnitude_loss = torch.zeros(1, dtype=torch.float).to(self.device)
 
         if self.training:
             # if 1:
@@ -121,10 +118,7 @@ class extension_layer(nn.Module):
                 if index.sum() > 0:
                     dxdymagnitude_loss_sub = 0.1 * self.hand_dxdymagnitude_loss(dxdymagnitude_pred_norm[i][index],
                                                                                 gt_labels[index])
-                    if not dxdymagnitude_loss:
-                        dxdymagnitude_loss = dxdymagnitude_loss_sub
-                    else:
-                        dxdymagnitude_loss += dxdymagnitude_loss_sub
+                    dxdymagnitude_loss += dxdymagnitude_loss_sub
 
             dxdymagnitude_loss = dxdymagnitude_loss / input.size(0)
 
@@ -133,7 +127,7 @@ class extension_layer(nn.Module):
 
     def hand_handside_part(self, input, roi_labels, box_info):
         handside_pred = self.hand_lr_layer(input)
-        handside_loss = 0
+        handside_loss = torch.zeros(1, dtype=torch.float).to(self.device)
 
         if self.training:
             for i in range(input.size(0)):
@@ -143,10 +137,8 @@ class extension_layer(nn.Module):
                     handside_loss_sub = 0.1 * self.hand_handside_loss(handside_pred[i][index],
                                                                       gt_labels[index].unsqueeze(-1))
 
-                    if not handside_loss:
-                        handside_loss = handside_loss_sub
-                    else:
-                        handside_loss += handside_loss_sub
+                    handside_loss += handside_loss_sub
+
             handside_loss = handside_loss / input.size(0)
 
         return handside_pred, handside_loss

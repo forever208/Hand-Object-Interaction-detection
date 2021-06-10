@@ -172,17 +172,17 @@ class _ProposalTargetLayer(nn.Module):
         labels = gt_boxes[:, :, 4].contiguous().view(-1)[(offset.view(-1),)].view(batch_size, -1)    # (batch, 2000+20)
 
         # assign contact labels for 2020 proposal bboxes based on the cls index
-        # list_box = []
-        # for i in range(batch_size):
-        #     # # solve the bug when batch > 1
-        #     # link_label_i = box_info[i].expand(i+1, box_info.size(1), box_info.size(2)).reshape(-1, box_info.size(2))
-        #     # list_box.append(link_label_i[(offset[i, :].view(-1),)])
-        #
-        #     list_box.append(box_info[i][(offset[i, :].view(-1),)])
-        # boxes_info = torch.stack(list_box)    # 3D tensor (batch, 2020, 5)
+        list_box = []
+        for i in range(batch_size):
+            # solve the bug when batch > 1
+            link_label_i = box_info[i].expand(i+1, box_info.size(1), box_info.size(2)).reshape(-1, box_info.size(2))
+            list_box.append(link_label_i[(offset[i, :].view(-1),)])
+
+            # list_box.append(box_info[i][(offset[i, :].view(-1),)])
+        boxes_info = torch.stack(list_box)    # 3D tensor (batch, 2020, 5)
 
         """best solution to solve the bug when batch > 1"""
-        boxes_info = box_info.contiguous().view(-1, 5)[offset.view(-1)].view(batch_size, -1, 5)
+        # boxes_info = box_info.contiguous().view(-1, 5)[offset.view(-1)].view(batch_size, -1, 5)
 
         # initialise the best 128 proposals
         labels_batch = labels.new(batch_size, rois_per_image).zero_()    # (batch, 128)
