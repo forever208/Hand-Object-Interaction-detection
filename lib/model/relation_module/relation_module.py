@@ -35,7 +35,7 @@ class RelationModule(nn.Module):
 
 
     def PositionalEmbedding(self, bbox_coor, dim_g=64, wave_len=1000):
-        bbox_coor = bbox_coor.squeeze(0)  # (batch, 128, 5) ==> (128, 5) ==> (128, 4)
+        bbox_coor = bbox_coor.squeeze(0)  # (batch, 128, 5) ==> (128, 5)
         bbox_coor = bbox_coor[:, 1:]  # (128, 5) == > (128, 4), remove the first column
         x_min, y_min, x_max, y_max = torch.chunk(bbox_coor, 4, dim=1)  # (128, 4) ==> (128, 1)
 
@@ -114,6 +114,10 @@ class RelationUnit(nn.Module):
 
         w_v = self.WV(app_feature)  # (128, 2048) ==> (128, 64)
         output = torch.mm(w_mn, w_v)
+
+        if True in torch.isnan(output):
+            print('===========output nan================')
+            print(output)
 
         return output
 

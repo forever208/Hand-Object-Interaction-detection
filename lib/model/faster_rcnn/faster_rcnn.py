@@ -114,7 +114,6 @@ class _fasterRCNN(nn.Module):
         # 6. Relation module
         pooled_feat = self.relation_module(pooled_feat, rois)
 
-
         # 7. 2D feature tensor (128*batch, 2048) --> get bbox predictions
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)    # RCNN_bbox_pred() is defined in the child class (resnet)
 
