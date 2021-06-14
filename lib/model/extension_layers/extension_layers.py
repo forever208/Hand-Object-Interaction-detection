@@ -12,7 +12,7 @@ from model.utils.config import cfg
 class extension_layer(nn.Module):
     def __init__(self):
         super(extension_layer, self).__init__()
-        self.init_layers_weights()    # define the the layer and weights initialisation
+        self.init_layers_weights()    # define layers, loss and weights initialisation
         self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 

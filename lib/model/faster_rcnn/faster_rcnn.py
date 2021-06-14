@@ -7,6 +7,7 @@ from torch.autograd import Variable
 from model.utils.config import cfg
 from model.rpn.rpn import _RPN
 from model.extension_layers import extension_layers
+from model.relation_module import relation_module
 from model.roi_layers import ROIAlign, ROIPool
 # from model.roi_pooling.modules.roi_pool import _RoIPooling
 # from model.roi_align.modules.roi_align import RoIAlignAvg
@@ -42,6 +43,9 @@ class _fasterRCNN(nn.Module):
         # new layer
         self.extension_layer = extension_layers.extension_layer()
 
+        # relation module
+        self.relation_module = relation_module.RelationModule()
+
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes, box_info):
         """
@@ -66,7 +70,7 @@ class _fasterRCNN(nn.Module):
         # rois: 3D tensor (batch, 2000, 5), each row is a bbox [batch_ind, x1, y1, x2, y2]
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
 
-        # Select best 128 proposals for training, generate the 128 gt labels for final RCNN output
+        # 3. Select best 128 proposals for training, generate the 128 gt labels for final RCNN output
         if self.training:    # self.training is a class attribute in nn.module
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes, box_info)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws, box_info = roi_data
@@ -90,8 +94,8 @@ class _fasterRCNN(nn.Module):
         # expand the size of each bbox by 0.3*2 times
         rois_padded = Variable(self.enlarge_bbox(im_info, rois, 0.3))
 
-        # 3.        rois --> roi pooling --> pooled features 4D tensor (128, 1024, 7, 7)
-        # 3  padded rois --> roi pooling --> pooled features 4D tensor (128, 1024, 7, 7)
+        # 4.        rois --> roi pooling --> pooled features 4D tensor (128, 1024, 7, 7)
+        # 4  padded rois --> roi pooling --> pooled features 4D tensor (128, 1024, 7, 7)
         # loss batch dimension in this step
         if cfg.POOLING_MODE == 'align':
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
@@ -102,12 +106,16 @@ class _fasterRCNN(nn.Module):
         else:
             raise Exception("rpn pooling mode is not defined")
 
-        # 4.        pooled features --> downsample to 2D tensor (128, 2048) --> get bbox predictions
-        # 4. padded pooled features --> downsample to 2D tensor (128, 2048)
+        # 5.        pooled features --> downsample to 2D tensor (128*batch, 2048)
+        # 5. padded pooled features --> downsample to 2D tensor (128*batch, 2048)
         pooled_feat = self._head_to_tail(pooled_feat)    # _head_to_tail() is defined in the child class (resnet)
         pooled_feat_padded = self._head_to_tail(pooled_feat_padded)
 
-        # 5. 2D feature tensor (128, 2048) --> get bbox predictions
+        # 6. Relation module
+        pooled_feat = self.relation_module(pooled_feat, rois)
+
+
+        # 7. 2D feature tensor (128*batch, 2048) --> get bbox predictions
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)    # RCNN_bbox_pred() is defined in the child class (resnet)
 
         # select the corresponding columns according to roi labels
@@ -117,13 +125,13 @@ class _fasterRCNN(nn.Module):
                                             rois_label.view(rois_label.size(0), 1, 1).expand(rois_label.size(0), 1, 4))
             bbox_pred = bbox_pred_select.squeeze(1)
 
-        # 5. 2D feature tensor (128, 2048) --> get class predictions
+        # 7. 2D feature tensor (128*batch, 2048) --> get class predictions
         cls_score = self.RCNN_cls_score(pooled_feat)
         cls_prob = F.softmax(cls_score, 1)
         # object_feat = pooled_feat[rois_label==1,:]
         # result = self.lineartrial(object_feat)
 
-        # 6. loss function
+        # 8. Compute loss
         RCNN_loss_cls = 0
         RCNN_loss_bbox = 0
         loss_list = []
