@@ -43,6 +43,8 @@ class RelationModule(nn.Module):
         cy = (y_min + y_max) * 0.5
         w = (x_max - x_min)
         h = (y_max - y_min)
+        w = torch.clamp(w, min=1e-4)
+        h = torch.clamp(h, min=1e-4)
 
         delta_x = cx - cx.view(1, -1)  # (128, 128), each row is the delta_x between the box and the all boxes
         delta_x = torch.clamp(torch.abs(delta_x / w), min=1e-3)
@@ -95,6 +97,11 @@ class RelationUnit(nn.Module):
 
 
     def forward(self, app_feature, position_embedding):
+        """
+        :param app_feature: appearance feature of 128 proposals, 2D tensor (128*batch, 2048)
+        :param position_embedding: positional embedding of 128 proposals, 3D tensor (128, 128, 64)
+        :return:
+        """
         N, _ = app_feature.size()
 
         # similarity measurement
@@ -105,7 +112,6 @@ class RelationUnit(nn.Module):
         scaled_dot = scaled_dot / np.sqrt(self.dim_k)  # (128, 128)
 
         # positional embedding
-        position_embedding = position_embedding.view(-1, self.dim_g)  # (128, 128, 64) ==> (128, 128, 1)
         w_g = self.relu(self.WG(position_embedding))  # (128, 128, 64) ==> (128, 128, 1)
         w_g = w_g.view(N, N)  # (128, 128), each element is a position score between obj_n and obj_m
         w_a = scaled_dot.view(N, N)
@@ -114,10 +120,6 @@ class RelationUnit(nn.Module):
 
         w_v = self.WV(app_feature)  # (128, 2048) ==> (128, 64)
         output = torch.mm(w_mn, w_v)
-
-        if True in torch.isnan(output):
-            print('===========output nan================')
-            print(output)
 
         return output
 
