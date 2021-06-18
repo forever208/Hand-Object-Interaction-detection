@@ -57,7 +57,7 @@ class _ProposalLayer(nn.Module):
         @return: rois (batch, 2000, 5), 2000 training proposals, each row is [batch_ind, x1, y1, x2, y2]
         """
 
-        # take the positive (object) scores
+        # take the positive (object) cls_scores
         scores = input[0][:, self._num_anchors:, :, :]    # (batch, 9, H, W)
         bbox_deltas = input[1]    # (batch, 36, H, W)
         im_info = input[2]    # (batch, 2)
@@ -90,7 +90,7 @@ class _ProposalLayer(nn.Module):
         bbox_deltas = bbox_deltas.permute(0, 2, 3, 1).contiguous()    # (batch, 36, H, W) --> (batch, H, W, 36)
         bbox_deltas = bbox_deltas.view(batch_size, -1, 4)    # (batch, H, W, 36) --> (batch, H*W*9, 4)
 
-        # Same story for the scores:
+        # Same story for the cls_scores:
         scores = scores.permute(0, 2, 3, 1).contiguous()    # (batch, 9, H, W) --> (batch, H, W, 9)
         scores = scores.view(batch_size, -1)    # (batch, H, W, 9) --> (batch, H*W*9)
 

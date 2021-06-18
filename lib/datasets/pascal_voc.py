@@ -326,6 +326,10 @@ class pascal_voc(imdb):
 
 
     def _write_voc_results_file(self, all_boxes):
+        """
+        write
+        :param all_boxes: 2D list, 3 rows, num_images columns, each element is a 2D array (num_bbox, 11)
+        """
         for cls_ind, cls in enumerate(self.classes):
             if cls == '__background__':
                 continue
@@ -412,8 +416,8 @@ class pascal_voc(imdb):
     def evaluate_detections(self, all_boxes, output_dir):
         """
         entrance AP calculation
-        :param all_boxes:
-        :param output_dir:
+        :param all_boxes: 2D list, 3 rows, num_images columns, each element is a 2D array (num_bbox, 11)
+        :param output_dir: output/res101/voc_2007_test/hand0bj_100K/
         """
         self._write_voc_results_file(all_boxes)
         self._do_python_eval(output_dir)

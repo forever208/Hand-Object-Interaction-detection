@@ -56,6 +56,15 @@ class _fasterRCNN(nn.Module):
         @param num_boxes: 1D tensor [num_boxes]
         @param box_info: 3D tensor (batch, num_boxes, 5), each row is [contactstate, handside, magnitude, unitdx, unitdy]
         @return:
+            rois: roi proposals, 3D tensor (batch, 128, 5), each row: [batch_ind, x1, y1, x2, y2]
+            cls_prob: class prediction, 3D tensor (batch, 128, num_total_classes), each row is processed by softmax: [0.1, 0.1, 0.8]
+            bbox_pred: bbox prediction, 3D tensor (batch, 128, 4*num_total_classes)
+            rpn_loss_cls:
+            rpn_loss_bbox:
+            RCNN_loss_cls:
+            RCNN_loss_bbox:
+            rois_label:
+            loss_list:
         """
         batch_size = im_data.size(0)
         im_info = im_info.data

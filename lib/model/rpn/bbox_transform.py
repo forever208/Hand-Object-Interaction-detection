@@ -79,9 +79,9 @@ def bbox_transform_batch(ex_rois, gt_rois):
 def bbox_transform_inv(boxes, deltas, batch_size):
     """
     finetune the coordinate of anchors according to the predicted bbox_delta
-    :param boxes: (batch, H*W*9, 4)
-    :param deltas: (batch, H*W*9, 4)
-    :return: (batch, H*W*9, 4)
+    :param boxes: roi coordinates, 3D tensor (batch, 128, 4), each row: [x1, y1, x2, y2]
+    :param deltas: bbox delta prediction, 3D tensor (batch, 128, 4*num_total_classes)
+    :return: 3D tensor (batch, 128, 4*num_total_classes)
     """
     widths = boxes[:, :, 2] - boxes[:, :, 0] + 1.0
     heights = boxes[:, :, 3] - boxes[:, :, 1] + 1.0
@@ -135,7 +135,7 @@ def clip_boxes_batch(boxes, im_shape, batch_size):
 def clip_boxes(boxes, im_shape, batch_size):
     """
     clip finetuned bboxes to the image, make sure [x1, y1, x2, y2] are within the image [h, w]
-    :param boxes: (batch, H*W*9, 4)
+    :param boxes: 3D tensor (batch, 128, 4*num_total_classes)
     :param im_shape: (batch, 2)
     :return:
     """

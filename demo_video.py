@@ -354,7 +354,7 @@ if __name__ == '__main__':
                     im2show = np.copy(im)
                 obj_dets, hand_dets = None, None
                 for j in range(1, len(pascal_classes)):
-                    # inds = torch.nonzero(scores[:,j] > thresh).view(-1)
+                    # inds = torch.nonzero(cls_scores[:,j] > thresh).view(-1)
                     if pascal_classes[j] == 'hand':
                         inds = torch.nonzero(scores[:, j] > thresh_hand).view(-1)
                     elif pascal_classes[j] == 'targetobject':

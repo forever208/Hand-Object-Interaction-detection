@@ -282,7 +282,7 @@ if __name__ == '__main__':
             im2show = np.copy(im)
         for j in xrange(1, imdb.num_classes):
 
-            # inds = torch.nonzero(scores[:,j]>thresh).view(-1)
+            # inds = torch.nonzero(cls_scores[:,j]>thresh).view(-1)
             if pascal_classes[j] == 'hand':
                 inds = torch.nonzero(scores[:, j] > args.thresh_hand).view(-1)
             elif pascal_classes[j] == 'targetobject':

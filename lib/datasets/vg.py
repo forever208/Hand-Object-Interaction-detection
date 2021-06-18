@@ -369,7 +369,7 @@ class vg(imdb):
             if pickle:
                 with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
                     pickle.dump({'rec': rec, 'prec': prec, 'ap': ap,
-                        'scores': scores, 'npos':npos}, f)
+                        'cls_scores': scores, 'npos':npos}, f)
 
         # Set thresh to mean for classes with poor results
         thresh = np.array(thresh)
