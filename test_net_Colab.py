@@ -216,7 +216,7 @@ if __name__ == '__main__':
         RCNN_loss_cls, RCNN_loss_bbox, \
         rois_label, loss_list = fasterRCNN(im_data, im_info, gt_boxes, num_boxes, box_info)
 
-        cls_scores = cls_prob.data    # class predictions, 3D tensor (batch, 128, num_classes), each row is processed by softmax: [0.1, 0.1, 0.8]
+        class_scores = cls_prob.data    # class predictions, 3D tensor (batch, 128, num_classes), each row is processed by softmax: [0.1, 0.1, 0.8]
         boxes = rois.data[:, :, 1:5]    # roi coordinates, 3D tensor (batch, 128, 4), each row: [x1, y1, x2, y2]
         hand_contacts = loss_list[0][0]    # contactstate class predictions, 3D tensor (batch, 128, 5), cls cls_scores are before softmax
         hand_vector = loss_list[1][0].detach()    # link predictions, 3D tensor (batch, 128, 3), each row is [magnitude, dx, dy]
@@ -253,11 +253,11 @@ if __name__ == '__main__':
 
         # Simply repeat the boxes, once for each class
         else:
-            pred_boxes = np.tile(boxes, (1, cls_scores.shape[1]))
+            pred_boxes = np.tile(boxes, (1, class_scores.shape[1]))
 
         pred_boxes /= data[1][0][2].item()    # back to original image scale
 
-        cls_scores = cls_scores.squeeze()    # (1, 128, num_classes) ==> (128, num_classes)
+        class_scores = class_scores.squeeze()    # (1, 128, num_classes) ==> (128, num_classes)
         pred_boxes = pred_boxes.squeeze()    # (1, 128, 4*num_total_classes) ==> (128, 4*num_classes)
         det_toc = time.time()
         detect_time = det_toc - det_tic
@@ -270,15 +270,15 @@ if __name__ == '__main__':
         # nms for each class
         for j in range(1, imdb.num_classes):
             if pascal_classes[j] == 'hand':
-                inds = torch.nonzero(cls_scores[:, j] > args.thresh_hand).view(-1)    # 1D tensor (2*num)
+                inds = torch.nonzero(class_scores[:, j] > args.thresh_hand).view(-1)    # 1D tensor (2*num)
             elif pascal_classes[j] == 'targetobject':
-                inds = torch.nonzero(cls_scores[:, j] > args.thresh_obj).view(-1)
+                inds = torch.nonzero(class_scores[:, j] > args.thresh_obj).view(-1)
             else:
-                inds = torch.nonzero(cls_scores[:, j] > args.thresh_obj).view(-1)
+                inds = torch.nonzero(class_scores[:, j] > args.thresh_obj).view(-1)
 
             # if there is det
             if inds.numel() > 0:
-                cls_scores = cls_scores[:, j][inds]    # only retain class_score whose probability > threshold, 1D tensor (num)
+                cls_scores = class_scores[:, j][inds]    # only retain class_score whose probability > threshold, 1D tensor (num)
                 _, order = torch.sort(cls_scores, 0, True)    # sort from high to low, order: 1D tensor
                 if args.class_agnostic:
                     cls_boxes = pred_boxes[inds, :]
@@ -302,7 +302,6 @@ if __name__ == '__main__':
                 if args.vis:
                     im2show = vis_detections_filtered_objects_PIL(im2show, imdb.classes[j], cls_dets.cpu().numpy(), 0.1)
 
-                #
                 all_boxes[j][i] = cls_dets.cpu().numpy()
             else:
                 all_boxes[j][i] = empty_array
@@ -318,7 +317,7 @@ if __name__ == '__main__':
 
         misc_toc = time.time()
         nms_time = misc_toc - misc_tic
-        print('im_detect: {:d}/{:d} detection time{:.3f}s NMS time{:.3f}s' .format(i + 1, num_images, detect_time, nms_time))
+        print('im_detect: {:d}/{:d}  detection_time: {:.3f}s  NMS_time: {:.3f}s' .format(i + 1, num_images, detect_time, nms_time))
 
     # save detection results into file: detections.pkl
     with open(det_file, 'wb') as f:
