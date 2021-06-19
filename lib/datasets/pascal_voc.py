@@ -327,7 +327,7 @@ class pascal_voc(imdb):
 
     def _write_voc_results_file(self, all_boxes):
         """
-        write
+        write detection results into "data/VOCdevkit2007_handobj_100K/results/VOC2007/Main/comp4_det_test_targetobject.txt"
         :param all_boxes: 2D list, 3 rows, num_images columns, each element is a 2D array (num_bbox, 11)
         """
         for cls_ind, cls in enumerate(self.classes):
@@ -350,28 +350,42 @@ class pascal_voc(imdb):
 
 
     def _do_python_eval(self, output_dir='output'):
+        """
+        Do AP evaluation
+        :param output_dir: output/res101/voc_2007_test/hand0bj_100K/
+        """
+
+        # data/VOCdevkit2007_handobj_100K/VOC2007/Annotations/{:s}.xml
         annopath = os.path.join(self._devkit_path, 'VOC'+self._year, 'Annotations', '{:s}.xml')
+
+        # data/VOCdevkit2007_handobj_100K/VOC2007/ImageSets/Main/test.txt
         imagesetfile = os.path.join(self._devkit_path, 'VOC'+self._year, 'ImageSets', 'Main', self._image_set+'.txt')
+
+        # data/VOCdevkit2007_handobj_100K/annotations_cache
         cachedir = os.path.join(self._devkit_path, 'annotations_cache')
-        aps = []
-        # The PASCAL VOC metric changed in 2010
-        use_07_metric = True if int(self._year) < 2010 else False
-        print('VOC07 metric? ' + ('Yes' if use_07_metric else 'No'))
+
+        use_07_metric = True if int(self._year) < 2010 else False    # The PASCAL VOC metric changed in 2010
+        print('VOC07 metric? ' + ('--> Yes' if use_07_metric else '--> No'))
+
         if not os.path.isdir(output_dir):
             os.mkdir(output_dir)
+
         for i, cls in enumerate(self._classes):
             if cls == '__background__':
                 continue
-            filename = self._get_voc_results_file_template().format(cls)
-            rec, prec, ap = voc_eval(
-                filename, annopath, imagesetfile, cls, cachedir, ovthresh=0.5,
-                use_07_metric=use_07_metric)
-            aps += [ap]
+
+            # data/VOCdevkit2007_handobj_100K/results/VOC2007/Main/comp4_det_test_targetobject.txt
+            # data/VOCdevkit2007_handobj_100K/results/VOC2007/Main/comp4_det_test_hand.txt
+            filename = self._get_voc_results_file_template().format(cls)    # filename of the saved detections
+
+            # hand, target AP evaluation
+            rec, prec, ap = voc_eval(filename, annopath, imagesetfile, cls, cachedir, ovthresh=0.5, use_07_metric=use_07_metric)
             print('AP for {} = {:.4f}'.format(cls, ap))
 
             with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
                 pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
 
+            # hand + x, AP evaluation
             if cls == 'hand':
                 filename = self._get_voc_results_file_template()  # .format(cls)
                 for constraint in ['handstate', 'handside', 'objectbbox', 'all']:
@@ -381,14 +395,6 @@ class pascal_voc(imdb):
                     with open(os.path.join(output_dir, cls + f'_pr_{constraint}.pkl'), 'wb') as f:
                         pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
 
-        print('Mean AP = {:.4f}'.format(np.mean(aps)))
-        print('~~~~~~~~')
-        print('Results:')
-        for ap in aps:
-            print('{:.3f}'.format(ap))
-        print('{:.3f}'.format(np.mean(aps)))
-        print('~~~~~~~~')
-        print('')
         print('--------------------------------------------------------------')
         print('Results computed with the **unofficial** Python eval code.')
         print('Results should be very close to the official MATLAB eval code.')
@@ -415,12 +421,19 @@ class pascal_voc(imdb):
 
     def evaluate_detections(self, all_boxes, output_dir):
         """
-        entrance AP calculation
+        write detection results into txt file
+        evaluate the AP
         :param all_boxes: 2D list, 3 rows, num_images columns, each element is a 2D array (num_bbox, 11)
         :param output_dir: output/res101/voc_2007_test/hand0bj_100K/
         """
+
+        # 1. write detection results into "data/VOCdevkit2007_handobj_100K/results/VOC2007/Main/comp4_det_test_targetobject.txt"
         self._write_voc_results_file(all_boxes)
+
+        # 2. AP evaluation
         self._do_python_eval(output_dir)
+
+        # NO execution when competition_mode is on
         if self.config['matlab_eval']:
             self._do_matlab_eval(output_dir)
         if self.config['cleanup']:

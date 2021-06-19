@@ -92,68 +92,51 @@ def voc_ap(rec, prec, use_07_metric=False):
 '''
 
 
-def voc_eval(detpath,
-             annopath,
-             imagesetfile,
-             classname,
-             cachedir,
-             ovthresh=0.5,
-             use_07_metric=False):
-    """rec, prec, ap = voc_eval(detpath,
-                                annopath,
-                                imagesetfile,
-                                classname,
-                                [ovthresh],
-                                [use_07_metric])
-    Top level function that does the PASCAL VOC evaluation.
-    detpath: Path to detections
-        detpath.format(classname) should produce the detection results file.
-    annopath: Path to annotations
-        annopath.format(imagename) should be the xml annotations file.
-    imagesetfile: Text file containing the list of images, one image per line.
-    classname: Category name (duh)
-    cachedir: Directory for caching the annotations
-    [ovthresh]: Overlap threshold (default = 0.5)
-    [use_07_metric]: Whether to use VOC07's 11 point AP computation
-        (default False)
+def voc_eval(detpath, annopath, imagesetfile, classname, cachedir, ovthresh=0.5, use_07_metric=False):
     """
-    # assumes detections are in detpath.format(classname)
-    # assumes annotations are in annopath.format(imagename)
-    # assumes imagesetfile is a text file with each line an image name
-    # cachedir caches the annotations in a pickle file
+    PASCAL VOC AP evaluation.
+    :param detpath: detection path, "data/VOCdevkit2007_handobj_100K/results/VOC2007/Main/comp4_det_test_hand.txt"
+    :param annopath: gt lables path, "data/VOCdevkit2007_handobj_100K/VOC2007/Annotations/{:s}.xml"
+    :param imagesetfile: image filename, one image per line. "data/VOCdevkit2007_handobj_100K/VOC2007/ImageSets/Main/test.txt"
+    :param classname: 'targetobject', 'hand'
+    :param cachedir: annotation cash dir, "data/VOCdevkit2007_handobj_100K/annotations_cache"
+    :param ovthresh: Overlap threshold (default = 0.5)
+    :param use_07_metric: Whether to use VOC07's 11 point AP computation
+    :return:
+    """
 
-    print(f'\n\n thd = {ovthresh}\n\n')
+    print('\n IoU threshold of AP evaluation for {} = {} \n'.format(classname, ovthresh))
 
-    # first load gt
     if not os.path.isdir(cachedir):
         os.mkdir(cachedir)
+
+    # data/VOCdevkit2007_handobj_100K/VOC2007/ImageSets/Main/test.txt_annots.pkl
     cachefile = os.path.join(cachedir, '%s_annots.pkl' % imagesetfile)
-    # read list of images
+
+    # read image filenames
     with open(imagesetfile, 'r') as f:
         lines = f.readlines()
     imagenames = [x.strip() for x in lines]
 
+    # 1. load, parse and save gt labels (pkl file) based on image filename
     if not os.path.isfile(cachefile):
-        # load annotations
         recs = {}
         for i, imagename in enumerate(imagenames):
-            recs[imagename] = parse_rec(annopath.format(imagename))
+            recs[imagename] = parse_rec(annopath.format(imagename))    # annopath.format(imagename), replace {:s} with imagename
             if i % 100 == 0:
-                print('Reading annotation for {:d}/{:d}'.format(
-                    i + 1, len(imagenames)))
-        # save
+                print('Reading annotation for {:d}/{:d}'.format(i+1, len(imagenames)))
         print('Saving cached annotations to {:s}'.format(cachefile))
         with open(cachefile, 'wb') as f:
             pickle.dump(recs, f)
+    # load gt labels (pkl file)
     else:
-        # load
         with open(cachefile, 'rb') as f:
             try:
                 recs = pickle.load(f)
             except:
                 recs = pickle.load(f, encoding='bytes')
 
-    # extract gt objects for this class
+    # 2. extract gt labels for current class
     class_recs = {}
     npos = 0
     for imagename in imagenames:
@@ -166,7 +149,7 @@ def voc_eval(detpath,
                                  'difficult': difficult,
                                  'det': det}
 
-    # read dets
+    # 3. read file of detection results
     detfile = detpath.format(classname)
     with open(detfile, 'r') as f:
         lines = f.readlines()
@@ -176,6 +159,7 @@ def voc_eval(detpath,
     confidence = np.array([float(x[1]) for x in splitlines])
     BB = np.array([[float(z) for z in x[2:2 + 4]] for x in splitlines])
 
+    # 4. AP calculations
     nd = len(image_ids)
     tp = np.zeros(nd)
     fp = np.zeros(nd)
@@ -224,16 +208,16 @@ def voc_eval(detpath,
             else:
                 fp[d] = 1.
 
-    # compute precision recall
+    # compute precision and recall
     fp = np.cumsum(fp)
     tp = np.cumsum(tp)
-    rec = tp / float(npos)
+    recall = tp / float(npos)
     # avoid divide by zero in case the first detection matches a difficult
     # ground truth
-    prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
-    ap = voc_ap(rec, prec, use_07_metric)
+    precision = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
+    ap = voc_ap(recall, precision, use_07_metric)
 
-    return rec, prec, ap
+    return recall, precision, ap
 
 
 '''
@@ -244,39 +228,18 @@ TODO:
 '''
 
 
-def voc_eval_hand(detpath,
-                  annopath,
-                  imagesetfile,
-                  classname,
-                  cachedir,
-                  ovthresh=0.5,
-                  use_07_metric=False,
-                  constraint=''
-                  ):
-    """rec, prec, ap = voc_eval(detpath,
-                                annopath,
-                                imagesetfile,
-                                classname,
-                                [ovthresh],
-                                [use_07_metric])
-    Top level function that does the PASCAL VOC evaluation.
-    detpath: Path to detections
-        detpath.format(classname) should produce the detection results file.
-    annopath: Path to annotations
-        annopath.format(imagename) should be the xml annotations file.
-    imagesetfile: Text file containing the list of images, one image per line.
-    classname: Category name (duh)
-    cachedir: Directory for caching the annotations
-    [ovthresh]: Overlap threshold (default = 0.5)
-    [use_07_metric]: Whether to use VOC07's 11 point AP computation
-        (default False)
-    [constraint]：[handstate, handside, objectbbox]
+def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh=0.5, use_07_metric=False, constraint=''):
     """
-    # assumes detections are in detpath.format(classname)
-    # assumes annotations are in annopath.format(imagename)
-    # assumes imagesetfile is a text file with each line an image name
-    # cachedir caches the annotations in a pickle file
-
+    AP evaluation for hand interaction
+    :param detpath: detection path, "data/VOCdevkit2007_handobj_100K/results/VOC2007/Main/comp4_det_test_hand.txt"
+    :param annopath: gt lables path, "data/VOCdevkit2007_handobj_100K/VOC2007/Annotations/{:s}.xml"
+    :param imagesetfile: image filename, one image per line. "data/VOCdevkit2007_handobj_100K/VOC2007/ImageSets/Main/test.txt"
+    :param classname: 'hand'
+    :param cachedir: annotation cash dir, "data/VOCdevkit2007_handobj_100K/annotations_cache"
+    :param ovthresh: Overlap threshold (default = 0.5)
+    :param use_07_metric: Whether to use VOC07's 11 point AP computation
+    :param constraint: one of ['handstate', 'handside', 'objectbbox', 'all']
+    """
     # ------------------------------------------
     # cachefile = test.txt_annots.pkl
     # imagesetfile = test.txt
@@ -339,7 +302,8 @@ def voc_eval_hand(detpath,
     BB_det_hand, image_ids_hand, detfile_hand = extract_BB(detpath, extract_class='hand')
 
     ho_dict = make_hand_object_dict(BB_det_object, BB_det_hand, image_ids_object, image_ids_hand)
-    hand_det_res = gen_det_result(ho_dict)  # [image_path, score, handbbox, state, vector, side, objectbbox, objectbbox_score]
+    hand_det_res = gen_det_result(
+        ho_dict)  # [image_path, score, handbbox, state, vector, side, objectbbox, objectbbox_score]
 
     # print(f'det len: obj-bbox={len(BB_det_object)}, obj_image={len(image_ids_object)}, {detfile_object}')
     # print(f'det len: hand-bbox={len(BB_det_hand)}, hand_image={len(image_ids_hand)}, {detfile_hand}')
@@ -493,13 +457,13 @@ def voc_eval_hand(detpath,
     # compute precision recall
     fp = np.cumsum(fp)
     tp = np.cumsum(tp)
-    rec = tp / float(npos)
+    recall = tp / float(npos)
     # avoid divide by zero in case the first detection matches a difficult
     # ground truth
-    prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
-    ap = voc_ap(rec, prec, use_07_metric)
+    precision = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
+    ap = voc_ap(recall, precision, use_07_metric)
 
-    return rec, prec, ap
+    return recall, precision, ap
 
 
 # ======== debug ======== #

@@ -130,7 +130,7 @@ if __name__ == '__main__':
     cfg.TRAIN.USE_FLIPPED = False
     imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name, False)
     imdb.competition_mode(on=True)
-    print('{:d} roidb entries'.format(len(roidb)))
+    print('\n{:d} roidb entries\n'.format(len(roidb)))
 
     # model weights path
     input_dir = args.load_dir + "/" + args.net + "_" + args.model_name + "/" + args.dataset
@@ -180,8 +180,8 @@ if __name__ == '__main__':
     max_per_image = 100
     vis = args.vis
 
-    print(f'\n---------> det score thres_hand = {args.thresh_hand}\n')
-    print(f'\n---------> det score thres_obj = {args.thresh_obj}\n')
+    print(f'\n---------> det score thres_hand = {args.thresh_hand}')
+    print(f'---------> det score thres_obj = {args.thresh_obj}\n')
 
     save_name = args.save_name
     num_images = len(imdb.image_index)
@@ -324,7 +324,7 @@ if __name__ == '__main__':
         pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
 
     # entrance of AP calculation  --> goes to pascal_voc.py
-    print('Evaluating detections......................................')
+    print('\nEvaluating detections......................................\n')
     imdb.evaluate_detections(all_boxes, output_dir)
 
     end = time.time()
