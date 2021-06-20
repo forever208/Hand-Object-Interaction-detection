@@ -90,8 +90,6 @@ def voc_ap(rec, prec, use_07_metric=False):
 '''
 @description: raw evaluation for fasterrcnn
 '''
-
-
 def voc_eval(detpath, annopath, imagesetfile, classname, cachedir, ovthresh=0.5, use_07_metric=False):
     """
     PASCAL VOC AP evaluation.
@@ -189,8 +187,7 @@ def voc_eval(detpath, annopath, imagesetfile, classname, cachedir, ovthresh=0.5,
                 inters = iw * ih
 
                 uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
-                       (BBGT[:, 2] - BBGT[:, 0] + 1.) *
-                       (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
+                       (BBGT[:, 2] - BBGT[:, 0] + 1.) * (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
 
                 # assign the gt hand with max IoU to the predicted hand
                 overlaps = inters / uni
@@ -203,7 +200,7 @@ def voc_eval(detpath, annopath, imagesetfile, classname, cachedir, ovthresh=0.5,
                         tp[d] = 1.
                         R['det'][jmax] = 1
                     else:
-                        fp[d] = 1.
+                        fp[d] = 1.    # duplicate predictions are regarded as FP
             else:
                 fp[d] = 1.
 
@@ -222,11 +219,7 @@ def voc_eval(detpath, annopath, imagesetfile, classname, cachedir, ovthresh=0.5,
 '''
 @description: eval hand-object-interaction
 @compare: hand_bbox, object_bbox, state, side
-TODO:
-(1) prepare gt and det of hand --> (image_path, score, handbbox, state, side, objectbbox)
 '''
-
-
 def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh=0.5, use_07_metric=False, constraint=''):
     """
     AP evaluation for hand interaction
@@ -335,7 +328,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
         leftright_det = leftright_det[sorted_ind]
         objectbbox_det = [objectbbox_det[x] for x in sorted_ind]  # objectbbox_det[sorted_ind, :]
 
-        # for each detected hand, mark TPs and FPs
+        # 4. for each detected hand, compute TPs and FPs
         for d in range(nd):
             # one hand detection
             bb_det = BB_det[d, :].astype(float)    # predicted hand bbox, 1D array
@@ -343,7 +336,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
             hside_det = leftright_det[d].astype(int)
             objbbox_det = objectbbox_det[d]  # .astype(float)
 
-            # gt hand labels for one image
+            # get gt hand labels of one image
             max_iou = -np.inf
             R = class_recs[image_ids[d]]    # all gt labels for the same image
             BBGT = R['bbox'].astype(float)    # hand bbox, 2D array
@@ -372,7 +365,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
             if constraint == '':
                 if max_iou > ovthresh:
                     if not R['difficult'][ind]:
-                        if not R['det'][ind]:  # add diff constraints here for diff eval
+                        if not R['det'][ind]:    # if the gt hand hasn't been assigned to any prediction
                             tp[d] = 1.
                             R['det'][ind] = 1
                         else:
@@ -383,7 +376,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
             elif constraint == 'handstate':
                 if max_iou > ovthresh:
                     if not R['difficult'][ind]:
-                        if not R['det'][ind] and hstate_GT[ind] == hstate_det:  # add diff constraints here for diff eval
+                        if not R['det'][ind] and hstate_GT[ind] == hstate_det:
                             tp[d] = 1.
                             R['det'][ind] = 1
                         else:
@@ -394,7 +387,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
             elif constraint == 'handside':
                 if max_iou > ovthresh:
                     if not R['difficult'][ind]:
-                        if not R['det'][ind] and hside_GT[ind] == hside_det:  # add diff constraints here for diff eval
+                        if not R['det'][ind] and hside_GT[ind] == hside_det:
                             tp[d] = 1.
                             R['det'][ind] = 1
                         else:
@@ -405,7 +398,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
             elif constraint == 'objectbbox':
                 if max_iou > ovthresh:
                     if not R['difficult'][ind]:
-                        if not R['det'][ind] and val_objectbbox(objbbox_GT[ind], objbbox_det, image_ids[d]):  # add diff constraints here for diff eval
+                        if not R['det'][ind] and val_objectbbox(objbbox_GT[ind], objbbox_det):
                             tp[d] = 1.
                             R['det'][ind] = 1
                         else:
@@ -416,7 +409,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
             elif constraint == 'all':
                 if max_iou > ovthresh:
                     if not R['difficult'][ind]:
-                        if not R['det'][ind] and hstate_GT[ind] == hstate_det and hside_GT[ind] == hside_det and val_objectbbox(objbbox_GT[ind], objbbox_det, image_ids[d]):  # add diff constraints here for diff eval
+                        if not R['det'][ind] and hstate_GT[ind] == hstate_det and hside_GT[ind] == hside_det and val_objectbbox(objbbox_GT[ind], objbbox_det):
                             tp[d] = 1.
                             R['det'][ind] = 1
                         else:
@@ -436,21 +429,28 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
     return recall, precision, ap
 
 
-# ======== auxiluary functions ======== #
-def val_objectbbox(objbbox_GT, objbbox_det, imagepath, threshold=0.5):
+def val_objectbbox(objbbox_GT, objbbox_det, threshold=0.5):
+    """
+    evaluate if the target prediction is correct
+    :param objbbox_GT:
+    :param objbbox_det:
+    :param threshold:
+    :return: True/False
+    """
     if objbbox_GT is None and objbbox_det is None:
         # print('None - None')
         return True
+
     elif objbbox_GT is not None and objbbox_det is not None:
         if get_iou(objbbox_GT, objbbox_det) > threshold:
             # print('Yes', get_iou(objbbox_GT, objbbox_det), objbbox_GT, objbbox_det, imagepath)
             return True
-        # else:
-        # print('No', get_iou(objbbox_GT, objbbox_det), objbbox_GT, objbbox_det, imagepath)
+        else:
+            return False
 
     else:
-        # print(f'None - Float')
-        False
+        # print('None - Float')
+        return False
 
 
 def get_iou(bb1, bb2):
@@ -544,8 +544,6 @@ def calculate_center(bb):
 @description: 
 [image_path, hand_score, hand_bbox, state, vector, side, objectbbox, object_score]
 '''
-
-
 def gen_det_result(ho_dict):
     # take all results
     hand_det_res = []
@@ -589,57 +587,3 @@ def gen_det_result(ho_dict):
                 hand_det_res.append(to_add)
 
     return hand_det_res
-
-
-# ======== debug ======== #
-def debug_det_gt(image_name, det_info, gt_info, d):
-    os.makedirs('/y/dandans/Hand_Object_Detection/faster-rcnn.pytorch/images/debug', exist_ok=True)
-    # det_info = [bb_det, hstate_det, hside_det, objbbox_det, score_det， objbbox_score_det]
-    # gt_info = [BBGT[jmax], hstate_GT[jmax], hside_GT[jmax], objbbox_GT[jmax]]
-
-    genre, vid_folder = image_name.split('_', 1)[0], image_name.split('_', 1)[1][:13]
-    genre_name = f'{genre}_videos'
-    image_path = os.path.join('/y/jiaqig/hand_cache', genre_name, vid_folder, image_name + '.jpg')
-    image = Image.open(image_path).convert("RGBA")
-
-    draw = ImageDraw.Draw(image)
-    font = ImageFont.truetype('/y/dandans/Hand_Object_Detection/faster-rcnn.pytorch/lib/model/utils/times_b.ttf',
-                              size=20)
-    width, height = image.size
-
-    # ======== plot det ======== #
-
-    hand_bbox_det = list(det_info[0])
-    hand_bbox_det = list(int(np.round(x)) for x in hand_bbox_det)
-    image = draw_hand_mask(image, draw, 0, hand_bbox_det, det_info[4], det_info[2], det_info[1], width, height, font)
-
-    if det_info[3] is not None:
-        object_bbox_det = list(det_info[3])
-        object_bbox_det = list(int(np.round(x)) for x in object_bbox_det)
-        image = draw_obj_mask(image, draw, 0, object_bbox_det, det_info[5], width, height, font)
-
-        if det_info[1] > 0:  # in contact hand
-
-            obj_cc, hand_cc = calculate_center_PIL(hand_bbox_det), calculate_center_PIL(object_bbox_det)
-            draw_line_point(draw, 0, (int(hand_cc[0]), int(hand_cc[1])), (int(obj_cc[0]), int(obj_cc[1])))
-
-    # ======== plot gt ======== #
-
-    hand_bbox_gt = list(gt_info[0])
-    hand_bbox_gt = list(int(np.round(x)) for x in hand_bbox_gt)
-    image = draw_hand_mask(image, draw, 1, hand_bbox_gt, 1.0, gt_info[2], gt_info[1], width, height, font)
-
-    if gt_info[3] is not None:
-        object_bbox_gt = list(gt_info[3])
-        object_bbox_gt = list(int(np.round(x)) for x in object_bbox_gt)
-        image = draw_obj_mask(image, draw, 1, object_bbox_gt, 1.0, width, height, font)
-
-        if gt_info[1] > 0:  # in contact hand
-
-            obj_cc, hand_cc = calculate_center_PIL(hand_bbox_gt), calculate_center_PIL(object_bbox_gt)
-            draw_line_point(draw, 1, (int(hand_cc[0]), int(hand_cc[1])), (int(obj_cc[0]), int(obj_cc[1])))
-
-    # ======== save ======== #
-
-    save_name = image_name + f'_draw_{d:04d}.png'
-    image.save(os.path.join('/y/dandans/Hand_Object_Detection/faster-rcnn.pytorch/images/debug', save_name))
