@@ -165,22 +165,21 @@ def voc_eval(detpath, annopath, imagesetfile, classname, cachedir, ovthresh=0.5,
     fp = np.zeros(nd)
 
     if BB.shape[0] > 0:
-        # sort by confidence
+        # sort by confidence from high to low
         sorted_ind = np.argsort(-confidence)
         sorted_scores = np.sort(-confidence)
         BB = BB[sorted_ind, :]
         image_ids = [image_ids[x] for x in sorted_ind]
 
-        # go down dets and mark TPs and FPs
+        # for each detected hand/target, mark TPs and FPs
         for d in range(nd):
             R = class_recs[image_ids[d]]
             bb = BB[d, :].astype(float)
-            ovmax = -np.inf
+            max_iou = -np.inf
             BBGT = R['bbox'].astype(float)
 
             if BBGT.size > 0:
-                # compute overlaps
-                # intersection
+                # compute the IoU between one predicted hand and all gt hands
                 ixmin = np.maximum(BBGT[:, 0], bb[0])
                 iymin = np.maximum(BBGT[:, 1], bb[1])
                 ixmax = np.minimum(BBGT[:, 2], bb[2])
@@ -189,16 +188,16 @@ def voc_eval(detpath, annopath, imagesetfile, classname, cachedir, ovthresh=0.5,
                 ih = np.maximum(iymax - iymin + 1., 0.)
                 inters = iw * ih
 
-                # union
                 uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
                        (BBGT[:, 2] - BBGT[:, 0] + 1.) *
                        (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
 
+                # assign the gt hand with max IoU to the predicted hand
                 overlaps = inters / uni
-                ovmax = np.max(overlaps)
+                max_iou = np.max(overlaps)
                 jmax = np.argmax(overlaps)
 
-            if ovmax > ovthresh:
+            if max_iou > ovthresh:
                 if not R['difficult'][jmax]:
                     if not R['det'][jmax]:
                         tp[d] = 1.
@@ -288,7 +287,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
         # R: each element is a dictionary of a hand labels
         # [{'name': 'hand', 'difficult': 0, 'bbox': [851, 508, 900, 542], 'handstate': 0, 'leftright': 0}, {}, ...{}]
         R = [obj for obj in recs[imagename] if obj['name'].lower() == classname]
-        bbox = np.array([x['bbox'] for x in R])    # 2D int array, each row is a bbox
+        bbox = np.array([x['bbox'] for x in R])    # 2D int array, each row is a hand bbox
         difficult = np.array([x['difficult'] for x in R]).astype(np.bool)    # 2D bool array, each row is a True/False
         handstate = np.array([x['handstate'] for x in R]).astype(np.int)    # 2D int array, each row is 0/1/2/3/4
         leftright = np.array([x['leftright'] for x in R]).astype(np.int)    # 2D int array, each row is 0/1
@@ -296,7 +295,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
         det = [False] * len(R)
         npos = npos + sum(~difficult)    # number of non-difficult gt hand bbox for all images
 
-        # pack all useful gt info into a dictionary, each key-value is an image
+        # pack all useful gt into a dictionary, each key-value is an image
         class_recs[imagename] = {'bbox': bbox,
                                  'difficult': difficult,
                                  'handstate': handstate,
@@ -323,48 +322,37 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
     objectbbox_det = [x[6] for x in hand_det_res]    # target bbox, 2D list
     objectbbox_score_det = [x[7] for x in hand_det_res]    # target score
 
-    nd = len(image_ids)    # number of test images
+    nd = len(image_ids)    # number of detected hand among the test set
     tp = np.zeros(nd)
     fp = np.zeros(nd)
 
     if BB_det.shape[0] > 0:
-        # sort by confidence
+        # sort by confidence from high to low
         sorted_ind = np.argsort(-confidence)
-        sorted_scores = np.sort(-confidence)
-
-        # ======== det ======== #
         image_ids = [image_ids[x] for x in sorted_ind]
-        confidence_det = [confidence[x] for x in sorted_ind]
         BB_det = BB_det[sorted_ind, :]
         handstate_det = handstate_det[sorted_ind]
         leftright_det = leftright_det[sorted_ind]
         objectbbox_det = [objectbbox_det[x] for x in sorted_ind]  # objectbbox_det[sorted_ind, :]
-        objectbbox_score_det = [objectbbox_score_det[x] for x in sorted_ind]  # objectbbox_det[sorted_ind, :]
-        # ============================= #
 
-        # go down dets and mark TPs and FPs
+        # for each detected hand, mark TPs and FPs
         for d in range(nd):
-            # det
-            image_id_det = image_ids[d]
-            score_det = confidence_det[d]
-            bb_det = BB_det[d, :].astype(float)
+            # one hand detection
+            bb_det = BB_det[d, :].astype(float)    # predicted hand bbox, 1D array
             hstate_det = handstate_det[d].astype(int)
             hside_det = leftright_det[d].astype(int)
             objbbox_det = objectbbox_det[d]  # .astype(float)
-            objbbox_score_det = objectbbox_score_det[d]
-            # print(f'debug hand-obj: {bb_det} {objbbox_det}')
 
-            # gt
-            ovmax = -np.inf
-            R = class_recs[image_ids[d]]
-            BBGT = R['bbox'].astype(float)
-            hstate_GT = R['handstate'].astype(int)
-            hside_GT = R['leftright'].astype(int)
-            objbbox_GT = R['objectbbox']  # .astype(float)
+            # gt hand labels for one image
+            max_iou = -np.inf
+            R = class_recs[image_ids[d]]    # all gt labels for the same image
+            BBGT = R['bbox'].astype(float)    # hand bbox, 2D array
+            hstate_GT = R['handstate'].astype(int)    # contactstate, 1D array [0, 0, 0, 0, 0]
+            hside_GT = R['leftright'].astype(int)    # hand side, 1D array [0, 0, 1, 1, 1]
+            objbbox_GT = R['objectbbox']  # target bbox, 1D array, [list([337.0, 488.0, 915.0, 653.0]), None, None, None, None]
 
             if BBGT.size > 0:
-                # compute overlaps
-                # intersection
+                # compute the IoU between one predicted hand and all gt hands
                 ixmin = np.maximum(BBGT[:, 0], bb_det[0])
                 iymin = np.maximum(BBGT[:, 1], bb_det[1])
                 ixmax = np.minimum(BBGT[:, 2], bb_det[2])
@@ -373,65 +361,64 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
                 ih = np.maximum(iymax - iymin + 1., 0.)
                 inters = iw * ih
 
-                # union
                 uni = ((bb_det[2] - bb_det[0] + 1.) * (bb_det[3] - bb_det[1] + 1.) +
-                       (BBGT[:, 2] - BBGT[:, 0] + 1.) *
-                       (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
+                       (BBGT[:, 2] - BBGT[:, 0] + 1.) * (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
 
+                # assign the gt hand with max IoU to the predicted hand
                 overlaps = inters / uni
-                ovmax = np.max(overlaps)
-                jmax = np.argmax(overlaps)
+                max_iou = np.max(overlaps)    # max IoU value
+                ind = np.argmax(overlaps)    # index of the max IoU
 
             if constraint == '':
-                if ovmax > ovthresh:
-                    if not R['difficult'][jmax]:
-                        if not R['det'][jmax]:  # add diff constraints here for diff eval
+                if max_iou > ovthresh:
+                    if not R['difficult'][ind]:
+                        if not R['det'][ind]:  # add diff constraints here for diff eval
                             tp[d] = 1.
-                            R['det'][jmax] = 1
+                            R['det'][ind] = 1
                         else:
                             fp[d] = 1.
                 else:
                     fp[d] = 1.
 
             elif constraint == 'handstate':
-                if ovmax > ovthresh:
-                    if not R['difficult'][jmax]:
-                        if not R['det'][jmax] and hstate_GT[jmax] == hstate_det:  # add diff constraints here for diff eval
+                if max_iou > ovthresh:
+                    if not R['difficult'][ind]:
+                        if not R['det'][ind] and hstate_GT[ind] == hstate_det:  # add diff constraints here for diff eval
                             tp[d] = 1.
-                            R['det'][jmax] = 1
+                            R['det'][ind] = 1
                         else:
                             fp[d] = 1.
                 else:
                     fp[d] = 1.
 
             elif constraint == 'handside':
-                if ovmax > ovthresh:
-                    if not R['difficult'][jmax]:
-                        if not R['det'][jmax] and hside_GT[jmax] == hside_det:  # add diff constraints here for diff eval
+                if max_iou > ovthresh:
+                    if not R['difficult'][ind]:
+                        if not R['det'][ind] and hside_GT[ind] == hside_det:  # add diff constraints here for diff eval
                             tp[d] = 1.
-                            R['det'][jmax] = 1
+                            R['det'][ind] = 1
                         else:
                             fp[d] = 1.
                 else:
                     fp[d] = 1.
 
             elif constraint == 'objectbbox':
-                if ovmax > ovthresh:
-                    if not R['difficult'][jmax]:
-                        if not R['det'][jmax] and val_objectbbox(objbbox_GT[jmax], objbbox_det, image_ids[d]):  # add diff constraints here for diff eval
+                if max_iou > ovthresh:
+                    if not R['difficult'][ind]:
+                        if not R['det'][ind] and val_objectbbox(objbbox_GT[ind], objbbox_det, image_ids[d]):  # add diff constraints here for diff eval
                             tp[d] = 1.
-                            R['det'][jmax] = 1
+                            R['det'][ind] = 1
                         else:
                             fp[d] = 1.
                 else:
                     fp[d] = 1.
 
             elif constraint == 'all':
-                if ovmax > ovthresh:
-                    if not R['difficult'][jmax]:
-                        if not R['det'][jmax] and hstate_GT[jmax] == hstate_det and hside_GT[jmax] == hside_det and val_objectbbox(objbbox_GT[jmax], objbbox_det, image_ids[d]):  # add diff constraints here for diff eval
+                if max_iou > ovthresh:
+                    if not R['difficult'][ind]:
+                        if not R['det'][ind] and hstate_GT[ind] == hstate_det and hside_GT[ind] == hside_det and val_objectbbox(objbbox_GT[ind], objbbox_det, image_ids[d]):  # add diff constraints here for diff eval
                             tp[d] = 1.
-                            R['det'][jmax] = 1
+                            R['det'][ind] = 1
                         else:
                             fp[d] = 1.
                 else:
