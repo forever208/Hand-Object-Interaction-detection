@@ -388,7 +388,7 @@ class pascal_voc(imdb):
             # hand + x, AP evaluation
             if cls == 'hand':
                 filename = self._get_voc_results_file_template()  # .format(cls)
-                for constraint in ['', 'handstate', 'handside', 'objectbbox', 'all']:
+                for constraint in ['handstate', 'handside', 'objectbbox', 'all']:
                     rec, prec, ap = voc_eval_hand(filename, annopath, imagesetfile, cls, cachedir, ovthresh=0.5,
                                                   use_07_metric=use_07_metric, constraint=constraint)
                     print('AP for {} + {} = {:.4f}'.format(cls, constraint, ap))

@@ -177,4 +177,5 @@ def combined_roidb(imdb_names, training=True, leftright=False):
         roidb = filter_roidb(roidb)
 
     ratio_list, ratio_index = rank_roidb_ratio(roidb)
+
     return imdb, roidb, ratio_list, ratio_index

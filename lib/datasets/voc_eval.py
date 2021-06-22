@@ -342,7 +342,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
             BBGT = R['bbox'].astype(float)    # hand bbox, 2D array
             hstate_GT = R['handstate'].astype(int)    # contactstate, 1D array [0, 0, 0, 0, 0]
             hside_GT = R['leftright'].astype(int)    # hand side, 1D array [0, 0, 1, 1, 1]
-            objbbox_GT = R['objectbbox']  # target bbox, 1D array, [list([337.0, 488.0, 915.0, 653.0]), None, None, None, None]
+            objbbox_GT = R['objectbbox']    # target bbox, 1D array, [list([337.0, 488.0, 915.0, 653.0]), None, None, None, None]
 
             if BBGT.size > 0:
                 # compute the IoU between one predicted hand and all gt hands
@@ -373,6 +373,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
                 else:
                     fp[d] = 1.
 
+            # hand + contact state
             elif constraint == 'handstate':
                 if max_iou > ovthresh:
                     if not R['difficult'][ind]:
@@ -384,6 +385,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
                 else:
                     fp[d] = 1.
 
+            # hand + hand side
             elif constraint == 'handside':
                 if max_iou > ovthresh:
                     if not R['difficult'][ind]:
@@ -395,6 +397,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
                 else:
                     fp[d] = 1.
 
+            # hand + target
             elif constraint == 'objectbbox':
                 if max_iou > ovthresh:
                     if not R['difficult'][ind]:
@@ -406,6 +409,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
                 else:
                     fp[d] = 1.
 
+            # hand + target + hand side + contact state
             elif constraint == 'all':
                 if max_iou > ovthresh:
                     if not R['difficult'][ind]:

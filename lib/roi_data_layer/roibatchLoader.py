@@ -27,8 +27,8 @@ class roibatchLoader(data.Dataset):
         self._roidb = roidb
         self._num_classes = num_classes
         # we make the height of image consistent to trim_height, trim_width
-        self.trim_height = cfg.TRAIN.TRIM_HEIGHT    # 600
-        self.trim_width = cfg.TRAIN.TRIM_WIDTH    # 600
+        self.trim_height = cfg.TRAIN.TRIM_HEIGHT    # 600, no usage
+        self.trim_width = cfg.TRAIN.TRIM_WIDTH    # 600, no usage
         self.max_num_box = cfg.MAX_NUM_GT_BOXES    # 20
         self.training = training
         self.normalize = normalize
@@ -90,6 +90,7 @@ class roibatchLoader(data.Dataset):
         #     'img_id':xx,
         #     'box_info': 2D array [[contactstate, handside, magnitude, unitdx, unitdy], [], ...]]
         blobs = get_minibatch(minibatch_db, self._num_classes)
+
         data = torch.from_numpy(blobs['data'])    # 4D array (1, 3, h, w)
         im_info = torch.from_numpy(blobs['im_info'])    # 2D array [[h, w, scale_factor]]
         data_height, data_width = data.size(1), data.size(2)

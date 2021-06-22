@@ -20,7 +20,7 @@ from model.utils.blob import prep_im_for_blob, im_list_to_blob
 
 def get_minibatch(roidb, num_classes):
     """
-    Given a roidb, read the image and subtract pixel mean and resize to 600
+    Given a roidb, read the image and subtract pixel mean and resize to 600 (for both training and test)
     :param roidb: annotation list [{}] for one image, the {} contains all labels
     :param num_classes: 3
     :return blobs, a dict contains infos of an image,
@@ -86,18 +86,11 @@ def _get_image_blob(roidb, scale_inds):
 
     for i in range(num_images):
         im = cv2.imread(roidb[i]['image'])
-        # im = imread(roidb[i]['image'])
-        # if len(im.shape) == 2:
-        #   im = im[:,:,np.newaxis]
-        #   im = np.concatenate((im,im,im), axis=2)
-        # flip the channel, since the original one using cv2
-        # rgb -> bgr
-        # im = im[:,:,::-1]
 
         if roidb[i]['flipped']:
             im = im[:, ::-1, :]
 
-        # subtract pixel mean and resize the image
+        # subtract pixel mean and rescale the image by factor = 600/shortest side
         target_size = cfg.TRAIN.SCALES[scale_inds[i]]    # 600
         im, im_scale = prep_im_for_blob(im, cfg.PIXEL_MEANS, target_size, cfg.TRAIN.MAX_SIZE)
         im_scales.append(im_scale)
