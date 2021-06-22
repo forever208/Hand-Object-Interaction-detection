@@ -355,9 +355,9 @@ if __name__ == '__main__':
         torch.save(state, save_name)
         print('save model: {}'.format(save_name))
 
-        # save model to Google drive
+        # save the last 2 models to Google drive
         Google_drive_path = '/content/drive/MyDrive/HOI_detection/trained_model'
-        if os.path.exists(Google_drive_path):
+        if os.path.exists(Google_drive_path) and (args.max_epochs-epoch)<=2 :
             save_name_gdrive = os.path.join(Google_drive_path, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
             torch.save(state, save_name_gdrive)
             print('save model to Google drive: {}'.format(save_name_gdrive))
