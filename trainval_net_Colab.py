@@ -361,8 +361,6 @@ if __name__ == '__main__':
             save_name_gdrive = os.path.join(Google_drive_path, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
             torch.save(state, save_name_gdrive)
             print('save model to Google drive: {}'.format(save_name_gdrive))
-        else:
-            raise Exception("path to Colab is wrong")
 
     if args.use_tfboard:
         logger.close()

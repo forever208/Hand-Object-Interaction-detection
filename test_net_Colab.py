@@ -317,7 +317,9 @@ if __name__ == '__main__':
 
         misc_toc = time.time()
         nms_time = misc_toc - misc_tic
-        print('im_detect: {:d}/{:d}  detection_time: {:.3f}s  NMS_time: {:.3f}s' .format(i + 1, num_images, detect_time, nms_time))
+
+        if i % 100 == 0:
+            print('im_detect: {:d}/{:d}  detection_time: {:.3f}s  NMS_time: {:.3f}s' .format(i + 1, num_images, detect_time, nms_time))
 
     # save detection results into file: detections.pkl
     with open(det_file, 'wb') as f:
