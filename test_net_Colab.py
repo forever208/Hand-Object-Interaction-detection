@@ -209,7 +209,7 @@ if __name__ == '__main__':
             num_boxes.resize_(data[3].size()).copy_(data[3])    # 1D tensor [num_boxes]
             box_info.resize_(data[4].size()).copy_(data[4])    # link gt label, 2D tensor [[contactstate, handside, magnitude, unitdx, unitdy], [], ...]]
 
-        # get predictions from Faster R-CNN
+        # 1. get predictions for one image from Faster R-CNN
         det_tic = time.time()
         rois, cls_prob, bbox_pred, \
         rpn_loss_cls, rpn_loss_box, \
@@ -222,18 +222,18 @@ if __name__ == '__main__':
         hand_vector = loss_list[1][0].detach()    # link predictions, 3D tensor (batch, 128, 3), each row is [magnitude, dx, dy]
         lr_vector = loss_list[2][0].detach()    # handside predictions, 2D tensor (batch, 128), cls cls_scores are before softmax
 
-        # contact predictions
+        # 2. postprocess contact predictions
         maxs, indices = torch.max(hand_contacts, 2)    # max: 2D tensor (batch, 128), index: 2D tensor (batch, 128)
         indices = indices.squeeze(0).unsqueeze(-1).float()    # (1, 128) ==> (128, 1)
 
         """might be problematic, each row of nc_prob is [1], I guess the author meant sigmoid """
         nc_prob = F.softmax(hand_contacts[:, :, 0].squeeze(0).unsqueeze(-1).float().detach(), dim=1)    # no contact, 2D tensor (128, 1)
 
-        # hand side predictions
+        # 3. postprocess hand side predictions
         lr = torch.sigmoid(lr_vector) > 0.5    # mask matrix
         lr = lr.squeeze(0).float()    # 1D tensor, (128)
 
-        # Apply bbox regression based on final output
+        # 4. postprocess bbox predictions (get absolute bbox coordinates)
         if cfg.TEST.BBOX_REG:
             box_deltas = bbox_pred.data    # bbox delta prediction, 3D tensor (batch, 128, 4*num_total_classes)
 
@@ -257,11 +257,11 @@ if __name__ == '__main__':
 
         pred_boxes /= data[1][0][2].item()    # back to original image scale
 
+        # 5. apply NMS
         class_scores = class_scores.squeeze()    # (1, 128, num_classes) ==> (128, num_classes)
         pred_boxes = pred_boxes.squeeze()    # (1, 128, 4*num_total_classes) ==> (128, 4*num_classes)
         det_toc = time.time()
         detect_time = det_toc - det_tic
-
         misc_tic = time.time()
         if args.vis:
             im = cv2.imread(imdb.image_path_at(i))
@@ -269,23 +269,24 @@ if __name__ == '__main__':
 
         # nms for each class
         for j in range(1, imdb.num_classes):
+
+            # pick out the index whose class predictions > 0.5
             if pascal_classes[j] == 'hand':
-                inds = torch.nonzero(class_scores[:, j] > args.thresh_hand).view(-1)    # 1D tensor (2*num)
+                inds = torch.nonzero(class_scores[:, j] > args.thresh_hand).view(-1)    # 1D tensor (num)
             elif pascal_classes[j] == 'targetobject':
                 inds = torch.nonzero(class_scores[:, j] > args.thresh_obj).view(-1)
             else:
                 inds = torch.nonzero(class_scores[:, j] > args.thresh_obj).view(-1)
 
-            # if there is det
             if inds.numel() > 0:
-                cls_scores = class_scores[:, j][inds]    # only retain class_score whose probability > threshold, 1D tensor (num)
-                _, order = torch.sort(cls_scores, 0, True)    # sort from high to low, order: 1D tensor
+                cls_scores = class_scores[:, j][inds]    # class_score whose prob > threshold, 1D tensor (num)
+                _, order = torch.sort(cls_scores, 0, True)    # sort from high to low, order: 1D tensor (num)
                 if args.class_agnostic:
                     cls_boxes = pred_boxes[inds, :]
                 else:
-                    cls_boxes = pred_boxes[inds][:, j*4 : (j+1)*4]    # only retain bbox whose cls probability > threshold, 2D tensor (num, 4)
+                    cls_boxes = pred_boxes[inds][:, j*4 : (j+1)*4]    # pick out bbox whose cls prob > threshold, 2D tensor (num, 4)
 
-                # 2D tensor (num, 11)
+                # all detections for one class, 2D tensor (num, 11)
                 cls_dets = torch.cat((cls_boxes,    # bbox, 2D tensor (num, 4)
                                       cls_scores.unsqueeze(1),    # class, 2D tensor (num, 1)
                                       indices[inds, :],    # contact state, 2D tensor (num, 1)
@@ -302,6 +303,7 @@ if __name__ == '__main__':
                 if args.vis:
                     im2show = vis_detections_filtered_objects_PIL(im2show, imdb.classes[j], cls_dets.cpu().numpy(), 0.1)
 
+                # save the one class detections (keep_num, 11) into 2D list
                 all_boxes[j][i] = cls_dets.cpu().numpy()
             else:
                 all_boxes[j][i] = empty_array

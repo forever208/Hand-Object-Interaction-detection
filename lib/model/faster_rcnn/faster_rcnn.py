@@ -64,7 +64,7 @@ class _fasterRCNN(nn.Module):
             RCNN_loss_cls:
             RCNN_loss_bbox:
             rois_label:
-            loss_list:
+            loss_list: [(contact predictions, loss), (link predictions, loss), (handside predictions, loss)]
         """
         batch_size = im_data.size(0)
         im_info = im_info.data
@@ -142,7 +142,6 @@ class _fasterRCNN(nn.Module):
         # 8. Compute loss
         RCNN_loss_cls = 0
         RCNN_loss_bbox = 0
-        loss_list = []
 
         if self.training:
             RCNN_loss_cls = F.cross_entropy(cls_score, rois_label)    # classification loss

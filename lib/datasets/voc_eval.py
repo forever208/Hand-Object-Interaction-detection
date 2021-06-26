@@ -299,9 +299,14 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
     # 3. read detection results (hand / target)
     # BB_det_object: 2D list, each element is a target detection [cls_score x1 y1 x2 y2 contactstate magnitude dx dy handside 1]
     BB_det_object, image_ids_object, detfile_object = extract_BB(detpath, extract_class='targetobject')
+
+    # BB_det_object: 2D list, each element is a hand detection [cls_score x1 y1 x2 y2 contactstate magnitude dx dy handside 1]
     BB_det_hand, image_ids_hand, detfile_hand = extract_BB(detpath, extract_class='hand')
+
+    # zip target and hand predictions into a dictionary for each image
     ho_dict = make_hand_object_dict(BB_det_object, BB_det_hand, image_ids_object, image_ids_hand)
 
+    # 4. each hand is assigned with a target by link info
     # hand detection results, 2D list, each sub-list has 8 elements
     # [img_filename, handscore, handbbox, contactstate, vector, side, objectbbox, objectbbox_score]
     # ['boardgame_v_-22f4DmhjLs_frame000022', 0.794, array([846.9, 504.3, 890.8, 545.2]), 1.0, array([ 0.071, -0.023, -0.097]), 0.0, [747.6, 152.5, 1135.1, 701.1], 0.875]
@@ -320,7 +325,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
     fp = np.zeros(nd)
 
     if BB_det.shape[0] > 0:
-        # sort by confidence from high to low
+        # sort by hand confidence from high to low
         sorted_ind = np.argsort(-confidence)
         image_ids = [image_ids[x] for x in sorted_ind]
         BB_det = BB_det[sorted_ind, :]
@@ -328,7 +333,7 @@ def voc_eval_hand(detpath, annopath, imagesetfile, classname, cachedir, ovthresh
         leftright_det = leftright_det[sorted_ind]
         objectbbox_det = [objectbbox_det[x] for x in sorted_ind]  # objectbbox_det[sorted_ind, :]
 
-        # 4. for each detected hand, compute TPs and FPs
+        # 5. for each detected hand, compute TPs and FPs
         for d in range(nd):
             # one hand detection
             bb_det = BB_det[d, :].astype(float)    # predicted hand bbox, 1D array
@@ -506,7 +511,7 @@ def extract_BB(detpath, extract_class):
 
 def make_hand_object_dict(BB_o, BB_h, image_o, image_h):
     """
-    for a image, zip target and hand predictions into a dictionary
+    for an image, zip target and hand predictions into a dictionary
     :param BB_o: 2D list, each element is a target detection [cls_score x1 y1 x2 y2 contactstate magnitude dx dy handside 1]
     :param BB_h: 2D list, each element is a hand detection [cls_score x1 y1 x2 y2 contactstate magnitude dx dy handside 1]
     :param image_o: a list image filename, each element corresponds to a target detection
@@ -541,7 +546,7 @@ def make_hand_object_dict(BB_o, BB_h, image_o, image_h):
 
 
 def calculate_center(bb):
-    return [(bb[1] + bb[3]) / 2, (bb[2] + bb[4]) / 2]
+    return [(bb[1]+bb[3]) / 2, (bb[2]+bb[4]) / 2]
 
 
 '''
@@ -549,43 +554,66 @@ def calculate_center(bb):
 [image_path, hand_score, hand_bbox, state, vector, side, objectbbox, object_score]
 '''
 def gen_det_result(ho_dict):
-    # take all results
+    """
+    assign each hand with a target prediction by link predictions
+    each element of ho_dict is [cls_score x1 y1 x2 y2 contactstate magnitude dx dy handside 1]
+
+    :param ho_dict: {'boardgame_v_-22f4DmhjLs_frame000022': {'hands': [array([ 9.940e-01,  1.219e+03,  3.674e+02,  1.272e+03,  5.052e+02, 0.000e+00,  9.200e-02, -7.200e-02,  7.000e-02,  1.000e+00, 1.000e+00]),
+                                                                       array([ 8.190e-01,  1.633e+02,  4.764e+02,  2.049e+02,  5.400e+02, 0.000e+00,  1.320e-01, -8.300e-02, -5.600e-02,  0.000e+00, 1.000e+00]),
+                                                                       array([ 7.940e-01,  8.469e+02,  5.043e+02,  8.908e+02,  5.452e+02, 1.000e+00,  7.100e-02, -2.300e-02, -9.700e-02,  0.000e+00, 1.000e+00]),
+                                                                       array([ 6.580e-01,  9.093e+02,  6.196e+02,  9.682e+02,  7.175e+02, 0.000e+00,  7.500e-02, -1.400e-02, -9.900e-02,  0.000e+00, 1.000e+00])
+                                                                     ],
+                                                            'objects': [array([ 8.750e-01,  7.476e+02,  1.525e+02,  1.135e+03,  7.011e+02, 0.000e+00,  8.300e-02, -9.000e-02, -4.400e-02,  0.000e+00, 1.000e+00]),
+                                                                        array([ 5.850e-01,  1.490e+01,  2.489e+02,  2.247e+02,  7.152e+02, 0.000e+00,  8.300e-02, -7.000e-02, -7.100e-02,  1.000e+00, 1.000e+00])
+                                                                       ]
+                                                            }
+                     'boardgame_v_-22f4DmhjLs_frame000023': {
+                                                             }}
+    :return:
+    """
+
     hand_det_res = []
 
+    # for each image
     for key, info in ho_dict.items():
         object_cc_list = []
         object_bb_list = []
         object_score_list = []
 
+        # for each target object, compute the center coordinate [xc, yc]
         for j, object_info in enumerate(info['objects']):
-            object_bbox = [object_info[1], object_info[2], object_info[3], object_info[4]]
-            object_cc_list.append(calculate_center(object_info))  # is it wrong???
-            object_bb_list.append(object_bbox)
-            object_score_list.append(float(object_info[0]))
+            object_bbox = [object_info[1], object_info[2], object_info[3], object_info[4]]    # get bbox [x1, y1, x2, y2]
+            object_cc_list.append(calculate_center(object_info))  # [[xc, yc], [xc, yc], ...,]
+            object_bb_list.append(object_bbox)    # [[x1, y1, x2, y2], [x1, y1, x2, y2], ...,]
+            object_score_list.append(float(object_info[0]))    # [[conf], [conf], ...,]
         object_cc_list = np.array(object_cc_list)
 
+        # for each hand, assign it with a target prediction
         for i, hand_info in enumerate(info['hands']):
             hand_path = key
             hand_score = hand_info[0]
             hand_bbox = hand_info[1:5]
             hand_state = hand_info[5]
-            hand_vector = hand_info[6:9]
+            hand_vector = hand_info[6:9]    # [magnitude dx dy]
             hand_side = hand_info[9]
 
+            # if there is no contact state for current hand, the hand will be assigned with no target object
             if hand_state <= 0 or len(object_cc_list) == 0:
                 to_add = [hand_path, hand_score, hand_bbox, hand_state, hand_vector, hand_side, None, None]
                 hand_det_res.append(to_add)
+
+            # estimated target bbox x = xc + magnitude*10000*dx, y = yc + magnitude*10000*dy
             else:
                 hand_cc = np.array(calculate_center(hand_info))
                 point_cc = np.array([(hand_cc[0] + hand_info[6] * 10000 * hand_info[7]),
                                      (hand_cc[1] + hand_info[6] * 10000 * hand_info[8])])
-                dist = np.sum((object_cc_list - point_cc) ** 2, axis=1)
 
+                # the closest target prediction to the estimated target will be assigned to the hand
+                dist = np.sum((object_cc_list - point_cc) ** 2, axis=1)
                 dist_min = np.argmin(dist)
-                # get object bbox
                 target_object_score = object_score_list[dist_min]
-                #
                 target_object_bbox = object_bb_list[dist_min]
+
                 to_add = [hand_path, hand_score, hand_bbox, hand_state, hand_vector, hand_side, target_object_bbox,
                           target_object_score]
                 hand_det_res.append(to_add)

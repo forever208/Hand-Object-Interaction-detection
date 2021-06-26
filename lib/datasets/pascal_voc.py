@@ -335,12 +335,17 @@ class pascal_voc(imdb):
                 continue
             print('Writing {} VOC results file'.format(cls))
             filename = self._get_voc_results_file_template().format(cls)
+
+            # each class has an individual file
             with open(filename, 'wt') as f:
+
+                # write current class predictions of all images into a file
                 for im_ind, index in enumerate(self.image_index):
-                    dets = all_boxes[cls_ind][im_ind]
+                    dets = all_boxes[cls_ind][im_ind]    # get current class predictions of one image
                     if dets == []:
                         continue
-                    # the VOCdevkit expects 1-based indices
+
+                    # write current class predictions of one image, each row is a prediction
                     for k in range(dets.shape[0]):
                         f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f} {:.1f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f}\n'.
                                 format(index, dets[k, 4],
