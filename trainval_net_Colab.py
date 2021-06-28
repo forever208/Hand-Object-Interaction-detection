@@ -215,6 +215,9 @@ if __name__ == '__main__':
             else:
                 params += [{'params': [value], 'lr': lr, 'weight_decay': cfg.TRAIN.WEIGHT_DECAY}]
 
+    # push network to GPU/CPU to make sure optimizer works on the same device
+    fasterRCNN.to(device)
+
     if args.optimizer == "adam":
         lr = lr * 0.1
         optimizer = torch.optim.Adam(params)
@@ -227,12 +230,13 @@ if __name__ == '__main__':
     if args.resume:
         load_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
         print("loading checkpoint %s" % (load_name))
-        checkpoint = torch.load(load_name)
+        checkpoint = torch.load(load_name)    # load checkpoint
+
         args.session = checkpoint['session']
         args.start_epoch = checkpoint['epoch']
-        fasterRCNN.load_state_dict(checkpoint['model'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        lr = optimizer.param_groups[0]['lr']
+        fasterRCNN.load_state_dict(checkpoint['model'])    # get model parameters
+        optimizer.load_state_dict(checkpoint['optimizer'])    # get optimizer parameters
+        lr = optimizer.param_groups[0]['lr']    # get learning rate
         if 'pooling_mode' in checkpoint.keys():
             cfg.POOLING_MODE = checkpoint['pooling_mode']
         print("loaded checkpoint %s" % (load_name))
@@ -250,7 +254,6 @@ if __name__ == '__main__':
     start predictions
     """
     iters_per_epoch = int(train_size / args.batch_size)
-    fasterRCNN.to(device)
     for epoch in range(args.start_epoch, args.max_epochs + 1):
         # set as train mode
         fasterRCNN.train()
@@ -357,7 +360,7 @@ if __name__ == '__main__':
 
         # save the last 2 models to Google drive
         Google_drive_path = '/content/drive/MyDrive/HOI_detection/trained_model'
-        if os.path.exists(Google_drive_path) and (args.max_epochs-epoch)<=2 :
+        if os.path.exists(Google_drive_path) and epoch>=8 :
             save_name_gdrive = os.path.join(Google_drive_path, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
             torch.save(state, save_name_gdrive)
             print('save model to Google drive: {}'.format(save_name_gdrive))
