@@ -108,17 +108,17 @@ class _fasterRCNN(nn.Module):
         # loss batch dimension in this step
         if cfg.POOLING_MODE == 'align':
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
-            pooled_feat_padded = self.RCNN_roi_align(base_feat, rois_padded.view(-1, 5))
+            # pooled_feat_padded = self.RCNN_roi_align(base_feat, rois_padded.view(-1, 5))
         elif cfg.POOLING_MODE == 'pool':
             pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1, 5))
-            pooled_feat_padded = self.RCNN_roi_pool(base_feat, rois_padded.view(-1, 5))
+            # pooled_feat_padded = self.RCNN_roi_pool(base_feat, rois_padded.view(-1, 5))
         else:
             raise Exception("rpn pooling mode is not defined")
 
         # 5.        pooled features --> downsample to 2D tensor (128*batch, 2048)
         # 5. padded pooled features --> downsample to 2D tensor (128*batch, 2048)
         pooled_feat = self._head_to_tail(pooled_feat)    # _head_to_tail() is defined in the child class (resnet)
-        pooled_feat_padded = self._head_to_tail(pooled_feat_padded)
+        # pooled_feat_padded = self._head_to_tail(pooled_feat_padded)
 
         # 6. Relation module
         pooled_feat = self.relation_module(pooled_feat, rois)
@@ -146,9 +146,9 @@ class _fasterRCNN(nn.Module):
         if self.training:
             RCNN_loss_cls = F.cross_entropy(cls_score, rois_label)    # classification loss
             RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)    # bbox regression L1 loss
-            loss_list = self.extension_layer(pooled_feat, pooled_feat_padded, rois_label_retain, box_info)
+            loss_list = self.extension_layer(pooled_feat, pooled_feat, rois_label_retain, box_info)
         else:
-            loss_list = self.extension_layer(pooled_feat, pooled_feat_padded, None, box_info)
+            loss_list = self.extension_layer(pooled_feat, pooled_feat, None, box_info)
 
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
