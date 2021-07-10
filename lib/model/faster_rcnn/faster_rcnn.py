@@ -121,7 +121,7 @@ class _fasterRCNN(nn.Module):
         # pooled_feat_padded = self._head_to_tail(pooled_feat_padded)
 
         # 6. Relation module
-        pooled_feat = self.relation_module(pooled_feat, rois)
+        relation_pooled_feat = self.relation_module(pooled_feat, rois)
 
         # 7. 2D feature tensor (128*batch, 2048) --> get bbox predictions
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)    # RCNN_bbox_pred() is defined in the child class (resnet)
@@ -146,9 +146,9 @@ class _fasterRCNN(nn.Module):
         if self.training:
             RCNN_loss_cls = F.cross_entropy(cls_score, rois_label)    # classification loss
             RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)    # bbox regression L1 loss
-            loss_list = self.extension_layer(pooled_feat, pooled_feat, rois_label_retain, box_info)
+            loss_list = self.extension_layer(relation_pooled_feat, relation_pooled_feat, rois_label_retain, box_info)
         else:
-            loss_list = self.extension_layer(pooled_feat, pooled_feat, None, box_info)
+            loss_list = self.extension_layer(relation_pooled_feat, relation_pooled_feat, None, box_info)
 
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
