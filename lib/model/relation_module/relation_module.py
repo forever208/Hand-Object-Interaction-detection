@@ -6,7 +6,7 @@ import numpy as np
 
 class RelationModule(nn.Module):
 
-    def __init__(self, n_relations=32, appear_feature_dim=2048, key_feature_dim=64, geo_feature_dim=64):
+    def __init__(self, n_relations=16, appear_feature_dim=2048, key_feature_dim=128, geo_feature_dim=128):
         super(RelationModule, self).__init__()
         self.num_relations = n_relations
         self.dim_g = geo_feature_dim
@@ -34,7 +34,7 @@ class RelationModule(nn.Module):
         return concat + app_feature
 
 
-    def PositionalEmbedding(self, bbox_coor, dim_g=64, wave_len=1000):
+    def PositionalEmbedding(self, bbox_coor, dim_g=128, wave_len=1000):
         bbox_coor = bbox_coor.squeeze(0)  # (batch, 128, 5) ==> (128, 5)
         bbox_coor = bbox_coor[:, 1:]  # (128, 5) == > (128, 4), remove the first column
         x_min, y_min, x_max, y_max = torch.chunk(bbox_coor, 4, dim=1)  # (128, 4) ==> (128, 1)
@@ -84,7 +84,7 @@ class RelationModule(nn.Module):
 
 
 class RelationUnit(nn.Module):
-    def __init__(self, appearance_feature_dim=2048, key_feature_dim=64, geo_feature_dim=64):
+    def __init__(self, appearance_feature_dim=2048, key_feature_dim=128, geo_feature_dim=128):
         super(RelationUnit, self).__init__()
 
         self.dim_g = geo_feature_dim
