@@ -31,8 +31,8 @@ class RelationModule(nn.Module):
                 concat = self.relation[N](app_feature, position_embedding)
             else:
                 concat = torch.cat((concat, self.relation[N](app_feature, position_embedding)), -1)  # concat along last channel
-        return concat + app_feature
-
+        # return concat + app_feature
+        return concat
 
     def PositionalEmbedding(self, bbox_coor, dim_g=128, wave_len=1000):
         bbox_coor = bbox_coor.squeeze(0)  # (batch, 128, 5) ==> (128, 5)
