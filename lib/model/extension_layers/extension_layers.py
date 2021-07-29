@@ -46,17 +46,18 @@ class extension_layer(nn.Module):
         """
         define the layers and loss function, do weights initialisation
         """
+
         # contact_state branch (5 outputs, portable, no contact, self-contact, stationary, other-person-contact)
-        self.hand_contact_state_layer = nn.Sequential(nn.Linear(2048, 32), \
+        self.hand_contact_state_layer = nn.Sequential(nn.Linear(512, 32), \
                                                       nn.ReLU(), \
-                                                      nn.Dropout(p=0.5), \
+                                                      nn.Dropout(p=0.2), \
                                                       nn.Linear(32, 5))
 
         # link branch (3 outputs, [magnitude, dx, dy])
-        self.hand_dydx_layer = torch.nn.Linear(2048, 3)
+        self.hand_dydx_layer = torch.nn.Linear(512, 3)
 
         # hand side branch (1 output, [left/right] ,But the author said the output is R2...)
-        self.hand_lr_layer = torch.nn.Linear(2048, 1)
+        self.hand_lr_layer = torch.nn.Linear(512, 1)
 
         # loss function for each branch
         self.hand_contactstate_loss = nn.CrossEntropyLoss()
