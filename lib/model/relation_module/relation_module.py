@@ -97,7 +97,7 @@ class RelationUnit(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.layer_norm = nn.LayerNorm(key_feature_dim, eps=1e-6)    # layer norm after self-attention
         self.W1 = nn.Linear(key_feature_dim, int(key_feature_dim/2))  # FC layer
-        self.W2 = nn.Linear(int(key_feature_dim/2), int(key_feature_dim/4))  # FC layer
+        self.W2 = nn.Linear(int(key_feature_dim/2), int(key_feature_dim/4), bias=False)  # FC layer
 
 
     def forward(self, app_feature, position_embedding):
