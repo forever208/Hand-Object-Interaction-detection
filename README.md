@@ -30,9 +30,10 @@ conda install pytorch==1.6.0 torchvision==0.7.0 cudatoolkit=10.1 -c pytorch
 
 ## 【2】Installation & Compile
 
-Clone the code
+Clone the code and cd into the fodler
 ```
 git clone https://github.com/forever208/Hand-Object-Interaction-detection.git
+cd Hand-Object-Interaction-detection
 ```
 
 Install all the python dependencies using pip:
