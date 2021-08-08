@@ -31,9 +31,8 @@ class RelationModule(nn.Module):
                 concat = self.relation[N](app_feature, position_embedding)
             else:
                 concat = torch.cat((concat, self.relation[N](app_feature, position_embedding)), -1)  # concat along last channel
-        return concat + app_feature
-        # return concat
-
+        # return concat + app_feature
+        return concat 
 
     def PositionalEmbedding(self, bbox_coor, dim_g=128, wave_len=1000):
         bbox_coor = bbox_coor.squeeze(0)  # (batch, 128, 5) ==> (128, 5)
@@ -90,14 +89,11 @@ class RelationUnit(nn.Module):
 
         self.dim_g = geo_feature_dim
         self.dim_k = key_feature_dim
-        self.WG = nn.Linear(geo_feature_dim, 1, bias=False)  # (128, 128, 64) ==> (128, 128, 1)
-        self.WK = nn.Linear(appearance_feature_dim, key_feature_dim, bias=False)  # (128, 2048) ==> (128, 64)
-        self.WQ = nn.Linear(appearance_feature_dim, key_feature_dim, bias=False)
-        self.WV = nn.Linear(appearance_feature_dim, key_feature_dim, bias=False)
+        self.WG = nn.Linear(geo_feature_dim, 1, bias=True)  # (128, 128, 64) ==> (128, 128, 1)
+        self.WK = nn.Linear(appearance_feature_dim, key_feature_dim, bias=True)  # (128, 2048) ==> (128, 64)
+        self.WQ = nn.Linear(appearance_feature_dim, key_feature_dim, bias=True)
+        self.WV = nn.Linear(appearance_feature_dim, key_feature_dim, bias=True)
         self.relu = nn.ReLU(inplace=True)
-        # self.layer_norm = nn.LayerNorm(key_feature_dim, eps=1e-6)    # layer norm after self-attention
-        # self.W1 = nn.Linear(key_feature_dim, key_feature_dim)  # FC layer
-        # self.W2 = nn.Linear(int(key_feature_dim/2), int(key_feature_dim/4), bias=False)  # FC layer
 
 
     def forward(self, app_feature, position_embedding):
@@ -118,20 +114,13 @@ class RelationUnit(nn.Module):
         # positional embedding
         w_g = self.relu(self.WG(position_embedding))  # (128, 128, 64) ==> (128, 128, 1)
         w_g = w_g.view(N, N)  # (128, 128), each element is a position score between obj_n and obj_m
-        w_g = torch.nn.Softmax(dim=1)(w_g)
-
-        # self-attention
         w_a = scaled_dot.view(N, N)
-        w_a = torch.nn.Softmax(dim=1)(w_a)
         w_mn = w_a + w_g  # merge appearance feature and geo feature
         w_mn = torch.nn.Softmax(dim=1)(w_mn)  # (128, 128), each element is a relation score between obj_n and obj_m
+
         w_v = self.WV(app_feature)  # (128, 2048) ==> (128, 64)
-        attention = torch.mm(w_mn, w_v)
+        output = torch.mm(w_mn, w_v)
 
-        # layer norm and FC layers
-        # output = self.layer_norm(attention)
-        # output = nn.functional.relu(self.W1(norm_attention))   # (128, 64) ==> (128, 64)
-
-        return attention
+        return output
 
 
