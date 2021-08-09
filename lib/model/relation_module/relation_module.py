@@ -34,6 +34,7 @@ class RelationModule(nn.Module):
         # return concat + app_feature
         return concat 
 
+
     def PositionalEmbedding(self, bbox_coor, dim_g=128, wave_len=1000):
         bbox_coor = bbox_coor.squeeze(0)  # (batch, 128, 5) ==> (128, 5)
         bbox_coor = bbox_coor[:, 1:]  # (128, 5) == > (128, 4), remove the first column
@@ -82,7 +83,6 @@ class RelationModule(nn.Module):
         return embedding
 
 
-
 class RelationUnit(nn.Module):
     def __init__(self, appearance_feature_dim=2048, key_feature_dim=128, geo_feature_dim=128):
         super(RelationUnit, self).__init__()
@@ -94,6 +94,9 @@ class RelationUnit(nn.Module):
         self.WQ = nn.Linear(appearance_feature_dim, key_feature_dim, bias=True)
         self.WV = nn.Linear(appearance_feature_dim, key_feature_dim, bias=True)
         self.relu = nn.ReLU(inplace=True)
+        self.layer_norm = nn.LayerNorm(key_feature_dim, eps=1e-6)  # layer norm after self-attention
+        self.W1 = nn.Linear(key_feature_dim, key_feature_dim)  # FC layer
+        self.W2 = nn.Linear(key_feature_dim, key_feature_dim)  # FC layer
 
 
     def forward(self, app_feature, position_embedding):
@@ -114,12 +117,17 @@ class RelationUnit(nn.Module):
         # positional embedding
         w_g = self.relu(self.WG(position_embedding))  # (128, 128, 64) ==> (128, 128, 1)
         w_g = w_g.view(N, N)  # (128, 128), each element is a position score between obj_n and obj_m
+
+        # self-attention
         w_a = scaled_dot.view(N, N)
         w_mn = w_a + w_g  # merge appearance feature and geo feature
         w_mn = torch.nn.Softmax(dim=1)(w_mn)  # (128, 128), each element is a relation score between obj_n and obj_m
-
         w_v = self.WV(app_feature)  # (128, 2048) ==> (128, 64)
-        output = torch.mm(w_mn, w_v)
+        attention = torch.mm(w_mn, w_v)
+
+        # layer norm and FC layers
+        norm_attention = self.layer_norm(attention)
+        output = self.W2(nn.functional.relu(self.W1(norm_attention)))  # (128, 64) ==> (128, 64)
 
         return output
 
